@@ -242,6 +242,124 @@ def init_db():
         CREATE INDEX IF NOT EXISTS idx_listings_status ON listings(status);
         CREATE INDEX IF NOT EXISTS idx_messages_receiver ON messages(receiver_id);
         CREATE INDEX IF NOT EXISTS idx_reviews_user ON reviews(reviewed_user_id);
+        
+        -- Landlord / Tenant (rentals) tables added during merge
+        CREATE TABLE IF NOT EXISTS landlords (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id TEXT UNIQUE NOT NULL,
+            username TEXT UNIQUE NOT NULL,
+            password_hash TEXT NOT NULL,
+            email TEXT,
+            full_name TEXT,
+            phone TEXT,
+            company_name TEXT,
+            verification_status TEXT DEFAULT 'pending',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+
+        CREATE TABLE IF NOT EXISTS tenants (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id TEXT UNIQUE NOT NULL,
+            username TEXT UNIQUE NOT NULL,
+            password_hash TEXT NOT NULL,
+            email TEXT,
+            full_name TEXT,
+            phone TEXT,
+            occupation TEXT,
+            approval_status TEXT DEFAULT 'pending',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+
+        CREATE TABLE IF NOT EXISTS properties (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            property_id TEXT UNIQUE NOT NULL,
+            landlord_id INTEGER NOT NULL,
+            title TEXT NOT NULL,
+            description TEXT,
+            address TEXT,
+            city TEXT,
+            state TEXT,
+            zipcode TEXT,
+            price_per_month REAL,
+            bedrooms INTEGER DEFAULT 0,
+            bathrooms REAL DEFAULT 0,
+            square_feet INTEGER DEFAULT 0,
+            property_type TEXT,
+            amenities TEXT,
+            is_available INTEGER DEFAULT 1,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (landlord_id) REFERENCES landlords(id)
+        );
+
+        CREATE TABLE IF NOT EXISTS rooms (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            room_id TEXT UNIQUE NOT NULL,
+            landlord_id INTEGER NOT NULL,
+            property_id INTEGER,
+            title TEXT,
+            description TEXT,
+            price_per_month REAL,
+            city TEXT,
+            is_available INTEGER DEFAULT 1,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (landlord_id) REFERENCES landlords(id),
+            FOREIGN KEY (property_id) REFERENCES properties(id)
+        );
+
+        CREATE TABLE IF NOT EXISTS applications (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            application_id TEXT UNIQUE NOT NULL,
+            property_id INTEGER NOT NULL,
+            tenant_id INTEGER NOT NULL,
+            landlord_id INTEGER NOT NULL,
+            status TEXT DEFAULT 'pending',
+            application_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (property_id) REFERENCES properties(id),
+            FOREIGN KEY (tenant_id) REFERENCES tenants(id),
+            FOREIGN KEY (landlord_id) REFERENCES landlords(id)
+        );
+
+        CREATE TABLE IF NOT EXISTS room_applications (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            ra_id TEXT UNIQUE NOT NULL,
+            room_id INTEGER NOT NULL,
+            tenant_id INTEGER NOT NULL,
+            landlord_id INTEGER NOT NULL,
+            status TEXT DEFAULT 'pending',
+            application_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (room_id) REFERENCES rooms(id),
+            FOREIGN KEY (tenant_id) REFERENCES tenants(id),
+            FOREIGN KEY (landlord_id) REFERENCES landlords(id)
+        );
+
+        CREATE TABLE IF NOT EXISTS lt_messages (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            message_id TEXT UNIQUE NOT NULL,
+            sender_type TEXT,
+            sender_id INTEGER,
+            receiver_type TEXT,
+            receiver_id INTEGER,
+            body TEXT,
+            is_read INTEGER DEFAULT 0,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+
+        CREATE TABLE IF NOT EXISTS lt_reviews (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            review_id TEXT UNIQUE NOT NULL,
+            property_id INTEGER,
+            reviewer_type TEXT,
+            reviewer_id INTEGER,
+            rating INTEGER,
+            comment TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (property_id) REFERENCES properties(id)
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_properties_landlord ON properties(landlord_id);
+        CREATE INDEX IF NOT EXISTS idx_rooms_landlord ON rooms(landlord_id);
+        CREATE INDEX IF NOT EXISTS idx_applications_property ON applications(property_id);
     ''')
     
     db.commit()

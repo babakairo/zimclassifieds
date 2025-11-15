@@ -4,7 +4,14 @@ from functools import wraps
 import uuid
 
 # Import helper from main app
-from app import get_db
+import sqlite3
+
+
+def get_db():
+    """Local DB helper to avoid circular import with app module when registering blueprint."""
+    db = sqlite3.connect('zimclassifieds.db')
+    db.row_factory = sqlite3.Row
+    return db
 
 rentals_bp = Blueprint('rentals', __name__, url_prefix='/rentals')
 
