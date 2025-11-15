@@ -336,14 +336,23 @@
             <div class="navbar-menu">
                 <a href="/">Home</a>
                 <a href="/search">Search</a>
+                <a href="/rentals/listings">Rentals</a>
                 {% if session.get('user_id') %}
                     <a href="/dashboard">Dashboard</a>
                     <a href="/messages">Messages</a>
                     <a href="/listing/new" class="btn btn-primary">+ Post Ad</a>
+                    {# Quick link to rentals dashboard depending on user role #}
+                    {% if session.get('user_type') == 'landlord' %}
+                        <a href="/rentals/landlord/dashboard">My Rentals</a>
+                    {% elif session.get('user_type') == 'tenant' %}
+                        <a href="/rentals/tenant/dashboard">My Rentals</a>
+                    {% endif %}
                     <a href="/logout">Logout</a>
                 {% else %}
                     <a href="/register">Register</a>
                     <a href="/login">Login</a>
+                    <a href="/rentals/register">Rentals Register</a>
+                    <a href="/rentals/login">Rentals Login</a>
                 {% endif %}
             </div>
         </div>

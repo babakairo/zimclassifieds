@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+
+{% block title %}Landlord Dashboard - RentConnect{% endblock %}
+
+{% block content %}
+<h1>Welcome, {{ landlord.full_name }}!</h1>
+<p>Your landlord dashboard — manage properties and applications.</p>
+
+<div class="card">
+    <p>Properties: {{ properties_count }} | Rooms: {{ rooms_count }} | New Applications: {{ applications|length + room_applications|length }}</p>
+</div>
+
+{% endblock %}

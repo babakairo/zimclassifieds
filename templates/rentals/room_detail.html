@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+
+{% block title %}{{ room.title }} - RentConnect{% endblock %}
+
+{% block content %}
+<h1>{{ room.title }}</h1>
+<p>{{ room.address }}, {{ room.city }}</p>
+<p>${{ room.price_per_month }} / month</p>
+
+{% endblock %}

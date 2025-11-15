@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+
+{% block title %}Property Details - RentConnect{% endblock %}
+
+{% block content %}
+<h1>{{ property.title }}</h1>
+<p>{{ property.address }}, {{ property.city }}</p>
+<p>${{ property.price_per_month }} / month</p>
+
+{% if reviews|length > 0 %}
+    <h3>Reviews</h3>
+    {% for r in reviews %}
+        <div class="card">
+            <p><strong>{{ r.reviewer_name }}</strong> — {{ r.rating }} ⭐</p>
+            <p>{{ r.comment }}</p>
+        </div>
+    {% endfor %}
+{% endif %}
+
+{% endblock %}

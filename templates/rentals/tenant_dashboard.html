@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+
+{% block title %}Tenant Dashboard - RentConnect{% endblock %}
+
+{% block content %}
+<h1>Welcome, {{ tenant.full_name }}!</h1>
+<p>Manage your applications and messages.</p>
+
+<div class="card">
+    <p>Active Applications: {{ applications|length }} | Unread Messages: {{ unread_messages }}</p>
+</div>
+
+{% endblock %}

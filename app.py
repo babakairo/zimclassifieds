@@ -568,7 +568,9 @@ def create_listing():
         
         # Determine listing status: if user's email not verified, set to 'pending'
         user = db.execute('SELECT * FROM users WHERE user_id = ?', (user_id,)).fetchone()
-        status = 'active' if user and user.get('email_verified') == 1 else 'pending'
+        # sqlite3.Row doesn't have .get(); use indexing with a safe fallback
+        email_verified = user['email_verified'] if user and 'email_verified' in user.keys() else 0
+        status = 'active' if email_verified == 1 else 'pending'
 
         # Verify reCAPTCHA if enabled
         if RECAPTCHA_SECRET_KEY and not verify_recaptcha(recaptcha_response):
@@ -1076,6 +1078,14 @@ def admin_logout():
     session.clear()
     return redirect(url_for('admin_login'))
 
+
+# Register rentals blueprint (merged landlord-tenant functionality)
+try:
+    from rentals import rentals_bp
+    app.register_blueprint(rentals_bp)
+except Exception as e:
+    # If blueprint import fails during initial edits, log and continue; application will still run.
+    print('Could not register rentals blueprint:', e)
 
 if __name__ == '__main__':
     init_db()

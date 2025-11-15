@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+
+{% block title %}List Rooms - RentConnect{% endblock %}
+
+{% block content %}
+<h1>List Rooms</h1>
+
+{% if rooms|length > 0 %}
+    <div>
+    {% for room in rooms %}
+        <div class="card">
+            <h3>{{ room.title }}</h3>
+            <p>{{ room.address }}, {{ room.city }}</p>
+            <p>${{ room.price_per_month }} / month</p>
+        </div>
+    {% endfor %}
+    </div>
+{% else %}
+    <div class="card">No rooms yet.</div>
+{% endif %}
+
+{% endblock %}
