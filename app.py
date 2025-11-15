@@ -35,6 +35,18 @@ EMAIL_FROM = os.environ.get('EMAIL_FROM') or 'no-reply@zimclassifieds.local'
 
 serializer = URLSafeTimedSerializer(app.secret_key)
 
+# Initialize database on app startup (for production/Render)
+@app.before_request
+def before_request():
+    """Initialize database tables if they don't exist."""
+    try:
+        db = get_db()
+        db.execute('SELECT 1 FROM users LIMIT 1')
+        db.close()
+    except Exception:
+        # Tables don't exist; initialize them
+        init_db()
+
 # Image upload configuration
 UPLOAD_FOLDER = 'static/uploads'
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
