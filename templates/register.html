@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+
+{% block title %}Register - ZimClassifieds{% endblock %}
+
+{% block content %}
+<div style="max-width: 500px; margin: 0 auto;">
+    <div class="card">
+        <h2 style="margin-bottom: 2rem; color: #1e3a8a;">Create Your Account</h2>
+
+        {% if error %}
+        <div class="error">{{ error }}</div>
+        {% endif %}
+
+        <form method="post">
+            <div class="form-group">
+                <label for="full_name">Full Name *</label>
+                <input type="text" id="full_name" name="full_name" required>
+            </div>
+
+            <div class="form-group">
+                <label for="email">Email Address *</label>
+                <input type="email" id="email" name="email" required>
+            </div>
+
+            <div class="form-group">
+                <label for="phone">Phone Number</label>
+                <input type="tel" id="phone" name="phone" placeholder="+263...">
+            </div>
+
+            <div class="form-group">
+                <label for="password">Password (min. 6 characters) *</label>
+                <input type="password" id="password" name="password" required>
+            </div>
+
+            <div class="form-group">
+                <label for="confirm_password">Confirm Password *</label>
+                <input type="password" id="confirm_password" name="confirm_password" required>
+            </div>
+
+            <button type="submit" class="btn btn-primary" style="width: 100%; padding: 12px;">Create Account</button>
+            {% if recaptcha_site_key %}
+            <div style="margin-top: 1rem; text-align: center;">
+                <script src="https://www.google.com/recaptcha/api.js" async defer></script>
+                <div class="g-recaptcha" data-sitekey="{{ recaptcha_site_key }}"></div>
+            </div>
+            {% endif %}
+        </form>
+
+        <p style="text-align: center; margin-top: 2rem;">
+            Already have an account? <a href="/login" style="color: #1e40af;">Login here</a>
+        </p>
+    </div>
+</div>
+{% endblock %}

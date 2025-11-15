@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+
+{% block title %}Conversation with {{ other_user.full_name }} - ZimClassifieds{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 2px solid #e5e7eb;">
+        <div style="font-size: 40px;">👤</div>
+        <div>
+            <h2 style="margin: 0;">{{ other_user.full_name }}</h2>
+            <div style="color: #666; font-size: 0.875rem;">
+                {% if other_user.verification_status == 'verified' %}
+                <span style="background: #10b981; color: white; padding: 0.25rem 0.75rem; border-radius: 20px;">✓ Verified</span>
+                {% endif %}
+            </div>
+        </div>
+        <a href="/profile/{{ other_user.user_id }}" class="btn" style="background: #3b82f6; color: white; margin-left: auto;">View Profile</a>
+    </div>
+
+    <!-- Messages -->
+    <div style="height: 500px; overflow-y: auto; border: 1px solid #e5e7eb; border-radius: 8px; padding: 1rem; background: #f9fafb; margin-bottom: 1rem;">
+        {% if messages %}
+            {% for msg in messages %}
+            <div style="margin-bottom: 1rem; display: flex; {% if msg.is_sent %}justify-content: flex-end;{% else %}justify-content: flex-start;{% endif %}">
+                <div style="max-width: 70%; padding: 0.75rem 1rem; border-radius: 8px; {% if msg.is_sent %}background: #3b82f6; color: white;{% else %}background: #e5e7eb;{% endif %}">
+                    <div style="word-wrap: break-word;">{{ msg.body }}</div>
+                    <div style="font-size: 0.75rem; margin-top: 0.5rem; opacity: 0.7;">{{ msg.created_at }}</div>
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+        <p style="color: #999; text-align: center;">No messages yet. Start the conversation!</p>
+        {% endif %}
+    </div>
+
+    <!-- Send Message Form -->
+    <form method="post" action="/api/send-message" style="display: flex; gap: 0.5rem;">
+        <input type="hidden" name="receiver_id" value="{{ other_user.user_id }}">
+        {% if listing %}
+        <input type="hidden" name="listing_id" value="{{ listing.listing_id }}">
+        {% endif %}
+        <textarea name="body" placeholder="Type your message..." required style="flex: 1; padding: 0.75rem; border: 1px solid #e5e7eb; border-radius: 8px; font-family: inherit; min-height: 80px; resize: vertical;"></textarea>
+        <button type="submit" class="btn btn-primary" style="align-self: flex-end;">Send</button>
+    </form>
+</div>
+
+{% if listing %}
+<div class="card" style="margin-top: 2rem;">
+    <h3>Listing: {{ listing.title }}</h3>
+    <a href="/listing/{{ listing.listing_id }}" class="btn btn-primary">View Listing</a>
+</div>
+{% endif %}
+{% endblock %}

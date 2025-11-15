@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+
+{% block title %}{{ user.full_name }}'s Profile - ZimClassifieds{% endblock %}
+
+{% block content %}
+<div style="display: grid; grid-template-columns: 300px 1fr; gap: 2rem;">
+    <!-- Profile Card -->
+    <div class="card">
+        <div style="text-align: center;">
+            <div style="font-size: 80px; margin-bottom: 1rem;">👤</div>
+            <h2>{{ user.full_name }}</h2>
+            {% if user.verification_status == 'verified' %}
+            <div style="display: inline-block; background: #10b981; color: white; padding: 0.25rem 0.75rem; border-radius: 20px; font-size: 0.875rem; margin-bottom: 1rem;">✓ Verified</div>
+            {% endif %}
+            <div style="color: #666; margin: 1rem 0;">
+                {% if user.location %}📍 {{ user.location }}{% endif %}<br>
+                {% if user.account_type %}📦 {{ user.account_type.title() }}{% endif %}
+            </div>
+        </div>
+        {% if user.bio %}
+        <div style="border-top: 1px solid #e5e7eb; padding-top: 1rem; margin-top: 1rem;">
+            <h4>About</h4>
+            <p>{{ user.bio }}</p>
+        </div>
+        {% endif %}
+        {% if user.phone and is_owner %}
+        <div style="border-top: 1px solid #e5e7eb; padding-top: 1rem; margin-top: 1rem;">
+            <strong>Phone:</strong> {{ user.phone }}
+        </div>
+        {% endif %}
+        <div style="margin-top: 1rem; display: flex; gap: 0.5rem;">
+            {% if not is_owner %}
+            <a href="/message/{{ user.user_id }}" class="btn btn-primary" style="flex: 1;">Message</a>
+            {% endif %}
+            {% if is_owner %}
+            <a href="/dashboard" class="btn btn-primary" style="flex: 1;">Edit Profile</a>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- User Listings -->
+    <div class="card">
+        <h3>Active Listings ({{ active_listings|length }})</h3>
+        {% if active_listings %}
+        <div class="grid" style="grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));">
+            {% for listing in active_listings %}
+            <a href="/listing/{{ listing.listing_id }}" class="listing-card">
+                <div class="listing-image">
+                    {% if listing.category == 'products' %}
+                        📦
+                    {% elif listing.category == 'services' %}
+                        🔧
+                    {% elif listing.category == 'jobs' %}
+                        💼
+                    {% elif listing.category == 'real_estate' %}
+                        🏠
+                    {% else %}
+                        💭
+                    {% endif %}
+                </div>
+                <div class="listing-content">
+                    <div class="listing-title">{{ listing.title }}</div>
+                    <div class="listing-category">{{ listing.subcategory }}</div>
+                    {% if listing.price %}
+                    <div class="listing-price">ZWL {{ "{:,.0f}".format(listing.price) }}</div>
+                    {% endif %}
+                    <div class="listing-time">👁 {{ listing.views }} views</div>
+                </div>
+            </a>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p style="color: #999;">This user has no active listings</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

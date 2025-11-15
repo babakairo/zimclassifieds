@@ -1,0 +1,167 @@
+{% extends "base.html" %}
+
+{% block title %}ZimClassifieds - Buy, Sell & Connect in Zimbabwe{% endblock %}
+
+{% block content %}
+<style>
+    .hero {
+        background: linear-gradient(135deg, #1e40af 0%, #1e3a8a 100%);
+        color: white;
+        padding: 4rem 2rem;
+        border-radius: 8px;
+        text-align: center;
+        margin-bottom: 3rem;
+    }
+
+    .hero h1 {
+        font-size: 42px;
+        margin-bottom: 1rem;
+    }
+
+    .hero p {
+        font-size: 18px;
+        margin-bottom: 2rem;
+        opacity: 0.9;
+    }
+
+    .search-box {
+        display: flex;
+        gap: 1rem;
+        margin-bottom: 2rem;
+        flex-wrap: wrap;
+    }
+
+    .search-box input {
+        flex: 1;
+        min-width: 250px;
+        padding: 12px;
+        border: none;
+        border-radius: 6px;
+        font-size: 16px;
+    }
+
+    .categories-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1.5rem;
+        margin: 3rem 0;
+    }
+
+    .category-card {
+        background: white;
+        padding: 2rem;
+        border-radius: 8px;
+        text-align: center;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        cursor: pointer;
+        transition: all 0.3s;
+        text-decoration: none;
+        color: #333;
+    }
+
+    .category-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+
+    .category-icon {
+        font-size: 40px;
+        margin-bottom: 1rem;
+    }
+
+    .category-name {
+        font-weight: bold;
+        font-size: 16px;
+    }
+</style>
+
+<div class="hero">
+    <h1>🏙️ Welcome to ZimClassifieds</h1>
+    <p>Buy, sell, find jobs, and connect with people in Zimbabwe</p>
+    
+    <form method="get" action="/search" class="search-box">
+        <input type="text" name="q" placeholder="What are you looking for?" required>
+        <select name="city">
+            <option value="">All Cities</option>
+            {% for city in locations.keys()|sort %}
+            <option value="{{ city }}">{{ city }}</option>
+            {% endfor %}
+        </select>
+        <button type="submit" class="btn btn-primary">Search</button>
+    </form>
+</div>
+
+<h2 style="margin-bottom: 2rem; text-align: center;">Browse Categories</h2>
+
+<div class="categories-grid">
+    <a href="/search?category=products" class="category-card">
+        <div class="category-icon">🛒</div>
+        <div class="category-name">Buy & Sell</div>
+        <small>Electronics, furniture, clothing & more</small>
+    </a>
+    
+    <a href="/search?category=services" class="category-card">
+        <div class="category-icon">🔧</div>
+        <div class="category-name">Services</div>
+        <small>Find professional services near you</small>
+    </a>
+    
+    <a href="/search?category=jobs" class="category-card">
+        <div class="category-icon">💼</div>
+        <div class="category-name">Jobs</div>
+        <small>Full-time, part-time & freelance</small>
+    </a>
+    
+    <a href="/search?category=real_estate" class="category-card">
+        <div class="category-icon">🏠</div>
+        <div class="category-name">Real Estate</div>
+        <small>Rent, buy or lease properties</small>
+    </a>
+    
+    <a href="/search?category=relationships" class="category-card">
+        <div class="category-icon">💕</div>
+        <div class="category-name">Relationships</div>
+        <small>Meet people and make connections</small>
+    </a>
+</div>
+
+<h2 style="margin-bottom: 2rem; margin-top: 3rem;">Featured Listings</h2>
+
+{% if featured_listings %}
+<div class="grid">
+    {% for listing in featured_listings %}
+    <a href="/listing/{{ listing.listing_id }}" class="listing-card">
+        <div class="listing-image">
+            {% if listing.category == 'products' %}
+                📦
+            {% elif listing.category == 'services' %}
+                🔧
+            {% elif listing.category == 'jobs' %}
+                💼
+            {% elif listing.category == 'real_estate' %}
+                🏠
+            {% else %}
+                💭
+            {% endif %}
+        </div>
+        <div class="listing-content">
+            <div class="listing-title">{{ listing.title }}</div>
+            <div class="listing-category">{{ listing.subcategory }}</div>
+            <div class="listing-location">📍 {{ listing.location_suburb }}, {{ listing.location_city }}</div>
+            {% if listing.price %}
+            <div class="listing-price">ZWL {{ "{:,.0f}".format(listing.price) }}</div>
+            {% endif %}
+            <div class="listing-time">{{ listing.created_at[:10] }}</div>
+        </div>
+    </a>
+    {% endfor %}
+</div>
+{% else %}
+<div class="alert alert-info">No listings yet. Be the first to post!</div>
+{% endif %}
+
+<div class="alert alert-info" style="margin-top: 3rem;">
+    <strong>💡 Tip:</strong> Create an account to post ads, message sellers, and save favorites!
+    <a href="/register" class="btn btn-primary" style="margin-top: 1rem;">Get Started</a>
+</div>
+{% endblock %}

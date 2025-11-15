@@ -1,0 +1,183 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Listing - ZimClassifieds{% endblock %}
+
+{% block content %}
+<h1 class="page-title">✏️ Edit Your Listing</h1>
+
+<div class="card" style="max-width: 800px; margin: 0 auto;">
+    <form method="post" action="/listing/{{ listing.listing_id }}/edit" id="editListingForm" enctype="multipart/form-data">
+        <div class="form-group">
+            <label for="title">Title *</label>
+            <input type="text" id="title" name="title" value="{{ listing.title }}" required>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+            <div class="form-group">
+                <label for="category">Category *</label>
+                <select id="category" name="category" required onchange="updateSubcategories()">
+                    <option value="">Select Category</option>
+                    {% for cat in categories %}
+                    <option value="{{ cat }}" {% if listing.category == cat %}selected{% endif %}>{{ cat.replace('_', ' ').title() }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="subcategory">Subcategory *</label>
+                <select id="subcategory" name="subcategory" required>
+                    <option value="">Select Subcategory</option>
+                    {% if listing.category in categories %}
+                        {% for subcat in categories[listing.category] %}
+                        <option value="{{ subcat }}" {% if listing.subcategory == subcat %}selected{% endif %}>{{ subcat }}</option>
+                        {% endfor %}
+                    {% endif %}
+                </select>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label for="description">Description *</label>
+            <textarea id="description" name="description" rows="6" required>{{ listing.description }}</textarea>
+        </div>
+
+        <!-- Current Images -->
+        {% if listing_images %}
+        <div class="form-group">
+            <label>Current Images</label>
+            <div style="display: flex; flex-wrap: wrap; gap: 1rem;">
+                {% for image in listing_images %}
+                <div style="position: relative; width: 100px;">
+                    <img src="/static/{{ image }}" alt="Listing image" style="width: 100px; height: 100px; object-fit: cover; border-radius: 8px; border: 2px solid #e5e7eb;">
+                    <input type="checkbox" name="delete_images" value="{{ image }}" style="position: absolute; top: 5px; right: 5px; width: 20px; height: 20px; cursor: pointer;">
+                </div>
+                {% endfor %}
+            </div>
+            <small style="color: #666;">Check the box to delete images</small>
+        </div>
+        {% endif %}
+
+        <!-- Add new images -->
+        <div class="form-group">
+            <label for="images">📷 Add New Images</label>
+            <input type="file" id="images" name="images" multiple accept="image/*" style="padding: 8px; border: 2px dashed #3b82f6; border-radius: 8px; cursor: pointer;">
+            <div id="image-preview" style="display: flex; flex-wrap: wrap; gap: 1rem; margin-top: 1rem;"></div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+            <div class="form-group">
+                <label for="price">Price (ZWL)</label>
+                <input type="number" id="price" name="price" value="{{ listing.price }}" step="0.01">
+            </div>
+
+            <div class="form-group">
+                <label for="currency">Currency</label>
+                <select id="currency" name="currency">
+                    <option value="ZWL" {% if listing.currency == 'ZWL' %}selected{% endif %}>ZWL (Zimbabwe Dollar)</option>
+                    <option value="USD" {% if listing.currency == 'USD' %}selected{% endif %}>USD (US Dollar)</option>
+                </select>
+            </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+            <div class="form-group">
+                <label for="location_city">City *</label>
+                <select id="location_city" name="location_city" required onchange="updateSuburbs()">
+                    <option value="">Select City</option>
+                    {% for city in locations %}
+                    <option value="{{ city }}" {% if listing.location_city == city %}selected{% endif %}>{{ city }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="location_suburb">Suburb/Area *</label>
+                <select id="location_suburb" name="location_suburb" required>
+                    <option value="">Select Suburb</option>
+                    {% if listing.location_city in locations %}
+                        {% for suburb in locations[listing.location_city] %}
+                        <option value="{{ suburb }}" {% if listing.location_suburb == suburb %}selected{% endif %}>{{ suburb }}</option>
+                        {% endfor %}
+                    {% endif %}
+                </select>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label for="status">Status</label>
+            <select id="status" name="status">
+                <option value="active" {% if listing.status == 'active' %}selected{% endif %}>Active</option>
+                <option value="sold" {% if listing.status == 'sold' %}selected{% endif %}>Sold/Completed</option>
+                <option value="inactive" {% if listing.status == 'inactive' %}selected{% endif %}>Inactive</option>
+            </select>
+        </div>
+
+        <div style="display: flex; gap: 1rem;">
+            <button type="submit" class="btn btn-primary">💾 Save Changes</button>
+            <a href="/listing/{{ listing.listing_id }}" class="btn" style="background: #6b7280; color: white;">Cancel</a>
+        </div>
+    </form>
+</div>
+
+<script>
+const categoriesData = {{ categories | tojson }};
+const locationsData = {{ locations | tojson }};
+
+// Image preview for new images
+document.getElementById('images').addEventListener('change', function(e) {
+    const preview = document.getElementById('image-preview');
+    preview.innerHTML = '';
+    const maxFiles = 5;
+    
+    if (this.files.length > maxFiles) {
+        alert(`Maximum ${maxFiles} images allowed`);
+        this.value = '';
+        return;
+    }
+    
+    for (let i = 0; i < this.files.length; i++) {
+        const file = this.files[i];
+        const reader = new FileReader();
+        
+        reader.onload = function(e) {
+            const img = document.createElement('img');
+            img.src = e.target.result;
+            img.style.cssText = 'width: 80px; height: 80px; object-fit: cover; border-radius: 8px; border: 2px solid #e5e7eb;';
+            preview.appendChild(img);
+        };
+        
+        reader.readAsDataURL(file);
+    }
+});
+
+function updateSubcategories() {
+    const category = document.getElementById('category').value;
+    const subcategorySelect = document.getElementById('subcategory');
+    subcategorySelect.innerHTML = '<option value="">Select Subcategory</option>';
+    
+    if (category && categoriesData[category]) {
+        categoriesData[category].forEach(subcat => {
+            const option = document.createElement('option');
+            option.value = subcat;
+            option.textContent = subcat;
+            subcategorySelect.appendChild(option);
+        });
+    }
+}
+
+function updateSuburbs() {
+    const city = document.getElementById('location_city').value;
+    const suburbSelect = document.getElementById('location_suburb');
+    suburbSelect.innerHTML = '<option value="">Select Suburb</option>';
+    
+    if (city && locationsData[city]) {
+        locationsData[city].forEach(suburb => {
+            const option = document.createElement('option');
+            option.value = suburb;
+            option.textContent = suburb;
+            suburbSelect.appendChild(option);
+        });
+    }
+}
+</script>
+{% endblock %}

@@ -1,0 +1,280 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Dashboard - ZimClassifieds{% endblock %}
+
+{% block content %}
+<h1 class="page-title">⚙️ Admin Dashboard</h1>
+
+<!-- Stats -->
+<div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); margin-bottom: 2rem;">
+    <div class="card" style="text-align: center;">
+        <div style="font-size: 2rem; color: #3b82f6; margin-bottom: 0.5rem;">{{ stats.total_users }}</div>
+        <div style="color: #666;">Total Users</div>
+    </div>
+    <div class="card" style="text-align: center;">
+        <div style="font-size: 2rem; color: #10b981; margin-bottom: 0.5rem;">{{ stats.total_listings }}</div>
+        <div style="color: #666;">Total Listings</div>
+    </div>
+    <div class="card" style="text-align: center;">
+        <div style="font-size: 2rem; color: #f59e0b; margin-bottom: 0.5rem;">{{ stats.pending_flags }}</div>
+        <div style="color: #666;">Pending Flags</div>
+    </div>
+    <div class="card" style="text-align: center;">
+        <div style="font-size: 2rem; color: #ef4444; margin-bottom: 0.5rem;">{{ stats.total_flags }}</div>
+        <div style="color: #666;">Total Flags</div>
+    </div>
+</div>
+
+<!-- Tabs -->
+<div style="display: flex; gap: 1rem; margin-bottom: 1rem; border-bottom: 2px solid #e5e7eb;">
+    <button class="tab-btn active" data-tab="flags">Flagged Listings</button>
+    <button class="tab-btn" data-tab="users">Users</button>
+    <button class="tab-btn" data-tab="listings">Listings</button>
+    <button class="tab-btn" data-tab="pending">Pending Listings</button>
+</div>
+
+<!-- Flagged Listings Tab -->
+<div id="flags-tab" class="tab-content">
+    <div class="card">
+        <h3>Flagged Listings ({{ flagged_listings|length }})</h3>
+        {% if flagged_listings %}
+        <table style="width: 100%; border-collapse: collapse;">
+            <thead>
+                <tr style="border-bottom: 2px solid #e5e7eb;">
+                    <th style="text-align: left; padding: 1rem; font-weight: 600;">Listing</th>
+                    <th style="text-align: left; padding: 1rem; font-weight: 600;">Reason</th>
+                    <th style="text-align: left; padding: 1rem; font-weight: 600;">Flags</th>
+                    <th style="text-align: left; padding: 1rem; font-weight: 600;">Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for listing in flagged_listings %}
+                <tr style="border-bottom: 1px solid #e5e7eb;">
+                    <td style="padding: 1rem;">
+                        <a href="/listing/{{ listing.listing_id }}" style="color: #3b82f6; text-decoration: none;">{{ listing.title }}</a>
+                        <div style="font-size: 0.875rem; color: #666;">{{ listing.subcategory }}</div>
+                    </td>
+                    <td style="padding: 1rem;">{{ listing.flag_reason }}</td>
+                    <td style="padding: 1rem;">{{ listing.flag_count }}</td>
+                    <td style="padding: 1rem; display: flex; gap: 0.5rem;">
+                        <button class="btn btn-success" onclick="approveListing('{{ listing.listing_id }}')">Approve</button>
+                        <button class="btn btn-danger" onclick="rejectListing('{{ listing.listing_id }}')">Remove</button>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p style="color: #999;">No flagged listings</p>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Pending Listings Tab -->
+<div id="pending-tab" class="tab-content" style="display: none;">
+    <div class="card">
+        <h3>Pending Listings ({{ pending_listings|length }})</h3>
+        {% if pending_listings %}
+        <table style="width: 100%; border-collapse: collapse;">
+            <thead>
+                <tr style="border-bottom: 2px solid #e5e7eb;">
+                    <th style="text-align: left; padding: 1rem; font-weight: 600;">Title</th>
+                    <th style="text-align: left; padding: 1rem; font-weight: 600;">Owner</th>
+                    <th style="text-align: left; padding: 1rem; font-weight: 600;">Created</th>
+                    <th style="text-align: left; padding: 1rem; font-weight: 600;">Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for listing in pending_listings %}
+                <tr style="border-bottom: 1px solid #e5e7eb;">
+                    <td style="padding: 1rem;">
+                        <a href="/listing/{{ listing.listing_id }}" style="color: #3b82f6; text-decoration: none;">{{ listing.title }}</a>
+                    </td>
+                    <td style="padding: 1rem;">{{ listing.owner_name }}</td>
+                    <td style="padding: 1rem;">{{ listing.created_at[:10] }}</td>
+                    <td style="padding: 1rem; display: flex; gap: 0.5rem;">
+                        <button class="btn btn-success" onclick="approvePending('{{ listing.listing_id }}')">Approve</button>
+                        <button class="btn btn-danger" onclick="rejectPending('{{ listing.listing_id }}')">Reject</button>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p style="color: #999;">No pending listings</p>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Users Tab -->
+<div id="users-tab" class="tab-content" style="display: none;">
+    <div class="card">
+        <h3>All Users ({{ users|length }})</h3>
+        {% if users %}
+        <table style="width: 100%; border-collapse: collapse;">
+            <thead>
+                <tr style="border-bottom: 2px solid #e5e7eb;">
+                    <th style="text-align: left; padding: 1rem; font-weight: 600;">Name</th>
+                    <th style="text-align: left; padding: 1rem; font-weight: 600;">Email</th>
+                    <th style="text-align: left; padding: 1rem; font-weight: 600;">Type</th>
+                    <th style="text-align: left; padding: 1rem; font-weight: 600;">Status</th>
+                    <th style="text-align: left; padding: 1rem; font-weight: 600;">Joined</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for user in users %}
+                <tr style="border-bottom: 1px solid #e5e7eb;">
+                    <td style="padding: 1rem;">
+                        <a href="/profile/{{ user.user_id }}" style="color: #3b82f6; text-decoration: none;">{{ user.full_name }}</a>
+                    </td>
+                    <td style="padding: 1rem;">{{ user.email }}</td>
+                    <td style="padding: 1rem;">{{ user.account_type or 'Individual' }}</td>
+                    <td style="padding: 1rem;">
+                        {% if user.verification_status == 'verified' %}
+                        <span style="background: #10b981; color: white; padding: 0.25rem 0.75rem; border-radius: 20px; font-size: 0.875rem;">Verified</span>
+                        {% else %}
+                        <span style="background: #f59e0b; color: white; padding: 0.25rem 0.75rem; border-radius: 20px; font-size: 0.875rem;">Pending</span>
+                        {% endif %}
+                    </td>
+                    <td style="padding: 1rem; font-size: 0.875rem;">{{ user.created_at[:10] }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p style="color: #999;">No users found</p>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Listings Tab -->
+<div id="listings-tab" class="tab-content" style="display: none;">
+    <div class="card">
+        <h3>All Listings ({{ all_listings|length }})</h3>
+        {% if all_listings %}
+        <table style="width: 100%; border-collapse: collapse;">
+            <thead>
+                <tr style="border-bottom: 2px solid #e5e7eb;">
+                    <th style="text-align: left; padding: 1rem; font-weight: 600;">Title</th>
+                    <th style="text-align: left; padding: 1rem; font-weight: 600;">Owner</th>
+                    <th style="text-align: left; padding: 1rem; font-weight: 600;">Category</th>
+                    <th style="text-align: left; padding: 1rem; font-weight: 600;">Status</th>
+                    <th style="text-align: left; padding: 1rem; font-weight: 600;">Views</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for listing in all_listings %}
+                <tr style="border-bottom: 1px solid #e5e7eb;">
+                    <td style="padding: 1rem;">
+                        <a href="/listing/{{ listing.listing_id }}" style="color: #3b82f6; text-decoration: none;">{{ listing.title }}</a>
+                    </td>
+                    <td style="padding: 1rem;">
+                        <a href="/profile/{{ listing.user_id }}" style="color: #3b82f6; text-decoration: none;">{{ listing.owner_name }}</a>
+                    </td>
+                    <td style="padding: 1rem;">{{ listing.category }}</td>
+                    <td style="padding: 1rem;">
+                        <span style="background: {% if listing.status == 'active' %}#10b981{% else %}#ef4444{% endif %}; color: white; padding: 0.25rem 0.75rem; border-radius: 20px; font-size: 0.875rem;">{{ listing.status }}</span>
+                    </td>
+                    <td style="padding: 1rem;">{{ listing.views }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p style="color: #999;">No listings found</p>
+        {% endif %}
+    </div>
+</div>
+
+<a href="/admin/logout" class="btn btn-danger" style="margin-top: 2rem;">Logout</a>
+
+<script>
+function approveListing(listingId) {
+    fetch(`/admin/flag/${listingId}/approved`, { method: 'POST' })
+        .then(r => r.json())
+        .then(d => { if (d.success) location.reload(); });
+}
+
+function rejectListing(listingId) {
+    fetch(`/admin/flag/${listingId}/rejected`, { method: 'POST' })
+        .then(r => r.json())
+        .then(d => { if (d.success) location.reload(); });
+}
+
+function approvePending(listingId) {
+    fetch(`/admin/listing/${listingId}/approve`, { method: 'POST' })
+        .then(r => r.json())
+        .then(d => { if (d.success) location.reload(); });
+}
+
+function rejectPending(listingId) {
+    fetch(`/admin/listing/${listingId}/reject`, { method: 'POST' })
+        .then(r => r.json())
+        .then(d => { if (d.success) location.reload(); });
+}
+
+document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(t => t.style.display = 'none');
+        this.classList.add('active');
+        document.getElementById(this.dataset.tab + '-tab').style.display = 'block';
+    });
+});
+</script>
+
+<style>
+.tab-btn {
+    padding: 0.75rem 1.5rem;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    font-size: 1rem;
+    color: #666;
+    font-weight: 500;
+    transition: color 0.2s;
+}
+
+.tab-btn.active {
+    color: #3b82f6;
+    border-bottom: 3px solid #3b82f6;
+    margin-bottom: -2px;
+}
+
+.tab-btn:hover {
+    color: #3b82f6;
+}
+
+.btn-success {
+    background: #10b981;
+    color: white;
+    padding: 0.5rem 1rem;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-block;
+    transition: background 0.2s;
+}
+
+.btn-success:hover {
+    background: #059669;
+}
+
+.btn-danger {
+    background: #ef4444;
+    color: white;
+    padding: 0.5rem 1rem;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-block;
+    transition: background 0.2s;
+}
+
+.btn-danger:hover {
+    background: #dc2626;
+}
+</style>
+{% endblock %}

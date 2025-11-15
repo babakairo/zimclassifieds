@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+
+{% block title %}Error - ZimClassifieds{% endblock %}
+
+{% block content %}
+<div style="text-align: center; padding: 4rem 2rem;">
+    <div style="font-size: 80px; margin-bottom: 1rem;">⚠️</div>
+    <h1 style="font-size: 3rem; margin-bottom: 1rem;">{{ error_code }}</h1>
+    <h2 style="font-size: 1.5rem; color: #666; margin-bottom: 2rem;">{{ error_message }}</h2>
+    
+    {% if error_description %}
+    <p style="color: #999; font-size: 1.125rem; margin-bottom: 2rem; max-width: 500px; margin-left: auto; margin-right: auto;">
+        {{ error_description }}
+    </p>
+    {% endif %}
+
+    <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+        <a href="/" class="btn btn-primary">🏠 Go Home</a>
+        {% if error_code != 404 %}
+        <a href="javascript:history.back()" class="btn" style="background: #6b7280; color: white;">← Go Back</a>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Helpful Info -->
+<div class="card" style="max-width: 600px; margin: 4rem auto 0;">
+    <h3>Need Help?</h3>
+    <ul style="line-height: 1.8; color: #666;">
+        {% if error_code == 404 %}
+        <li>The page you're looking for doesn't exist</li>
+        <li>Check the URL and try again</li>
+        <li>Use the search bar to find listings</li>
+        {% elif error_code == 403 %}
+        <li>You don't have permission to access this resource</li>
+        <li>Make sure you're logged in with the correct account</li>
+        <li>Only listing owners can edit or delete listings</li>
+        {% elif error_code == 500 %}
+        <li>Something went wrong on our end</li>
+        <li>Please try again later</li>
+        <li><a href="mailto:support@zimclassifieds.com" style="color: #3b82f6;">Contact support</a> if the problem persists</li>
+        {% else %}
+        <li><a href="/" style="color: #3b82f6;">Return to home page</a></li>
+        <li><a href="/search" style="color: #3b82f6;">Search for listings</a></li>
+        <li><a href="/dashboard" style="color: #3b82f6;">View your dashboard</a></li>
+        {% endif %}
+    </ul>
+</div>
+{% endblock %}
