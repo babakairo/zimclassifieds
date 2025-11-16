@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+
+{% block title %}Transporter Login - ZimClassifieds{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-5">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body p-5">
+                    <div class="text-center mb-4">
+                        <h1 class="h3">🚚 Transporter Login</h1>
+                        <p class="text-muted">Access your delivery dashboard</p>
+                    </div>
+
+                    {% if request.args.get('success') %}
+                    <div class="alert alert-success alert-dismissible fade show">
+                        {{ request.args.get('success') }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                    {% endif %}
+
+                    {% if error %}
+                    <div class="alert alert-danger alert-dismissible fade show">
+                        {{ error }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                    {% endif %}
+
+                    <form method="POST">
+                        <div class="mb-3">
+                            <label for="email" class="form-label">Email Address</label>
+                            <input type="email" class="form-control" id="email" name="email" required autofocus>
+                        </div>
+
+                        <div class="mb-4">
+                            <label for="password" class="form-label">Password</label>
+                            <input type="password" class="form-control" id="password" name="password" required>
+                        </div>
+
+                        <div class="d-grid gap-2 mb-3">
+                            <button type="submit" class="btn btn-primary">Login</button>
+                        </div>
+                    </form>
+
+                    <hr>
+
+                    <div class="text-center">
+                        <p class="text-muted mb-2">Not a transporter yet?</p>
+                        <a href="{{ url_for('transporters.register') }}" class="btn btn-outline-primary">
+                            Register Now
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

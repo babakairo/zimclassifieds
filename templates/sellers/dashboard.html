@@ -111,7 +111,7 @@
                                             {{ order.fulfillment_status|capitalize }}
                                         </span>
                                     </td>
-                                    <td>{{ order.order_date.strftime('%Y-%m-%d') }}</td>
+                                    <td>{{ order.order_date[:10] if order.order_date else 'N/A' }}</td>
                                 </tr>
                                 {% endfor %}
                             </tbody>

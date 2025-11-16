@@ -1,0 +1,187 @@
+{% extends "base.html" %}
+
+{% block title %}Delivery #{{ delivery.id }} - Transporter{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row mb-4">
+        <div class="col">
+            <h1 class="h4">Delivery Details - Order #{{ delivery.order_id[:8] }}</h1>
+        </div>
+        <div class="col-auto">
+            <a href="{{ url_for('transporters.my_deliveries') }}" class="btn btn-outline-secondary">← Back</a>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Delivery Info -->
+        <div class="col-md-8">
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Delivery Information</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <h6>📍 Pickup Location</h6>
+                            <p class="mb-1"><strong>{{ delivery.seller_name }}</strong></p>
+                            <p class="text-muted mb-1">{{ delivery.pickup_city }}</p>
+                            <p class="text-muted mb-0">Phone: {{ delivery.seller_phone }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>📍 Delivery Location</h6>
+                            <p class="mb-1"><strong>{{ delivery.customer_name }}</strong></p>
+                            <p class="text-muted mb-1">{{ delivery.delivery_city }}</p>
+                            <p class="text-muted mb-1">{{ delivery.customer_location }}</p>
+                            <p class="text-muted mb-0">Phone: {{ delivery.customer_phone }}</p>
+                        </div>
+                    </div>
+
+                    <hr>
+
+                    <div class="row">
+                        <div class="col-md-4">
+                            <small class="text-muted d-block">Delivery Type</small>
+                            {% if delivery.delivery_type == 'local' %}
+                            <span class="badge bg-success">Local</span>
+                            {% else %}
+                            <span class="badge bg-primary">Regional</span>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-4">
+                            <small class="text-muted d-block">Delivery Fee</small>
+                            <h5 class="text-success mb-0">ZWL {{ "%.2f"|format(delivery.delivery_fee) }}</h5>
+                        </div>
+                        <div class="col-md-4">
+                            <small class="text-muted d-block">Status</small>
+                            {% if delivery.status == 'completed' %}
+                            <span class="badge bg-success">✓ Completed</span>
+                            {% elif delivery.status == 'in_transit' %}
+                            <span class="badge bg-warning">🚗 In Transit</span>
+                            {% elif delivery.status == 'picked_up' %}
+                            <span class="badge bg-info">📦 Picked Up</span>
+                            {% elif delivery.status == 'assigned' %}
+                            <span class="badge bg-primary">Assigned</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Order Items -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Order Items</h5>
+                </div>
+                <div class="card-body">
+                    {% for item in items %}
+                    <div class="d-flex align-items-center mb-2">
+                        <div class="flex-grow-1">
+                            <strong>{{ item.product_name }}</strong>
+                            <small class="text-muted d-block">Qty: {{ item.quantity }}</small>
+                        </div>
+                        <div>ZWL {{ "%.2f"|format(item.subtotal) }}</div>
+                    </div>
+                    {% endfor %}
+                    <hr>
+                    <div class="d-flex justify-content-between">
+                        <strong>Total Order Value</strong>
+                        <strong>ZWL {{ "%.2f"|format(delivery.total_amount) }}</strong>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tracking Notes -->
+            {% if delivery.tracking_notes %}
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Tracking Notes</h5>
+                </div>
+                <div class="card-body">
+                    <p class="mb-0">{{ delivery.tracking_notes }}</p>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Status Update Panel -->
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm sticky-top" style="top: 20px;">
+                <div class="card-header bg-primary text-white">
+                    <h6 class="mb-0">Update Status</h6>
+                </div>
+                <div class="card-body">
+                    {% if delivery.status != 'completed' %}
+                    <div class="mb-3">
+                        <label class="form-label">New Status</label>
+                        <select class="form-select" id="newStatus">
+                            <option value="picked_up" {% if delivery.status == 'assigned' %}selected{% endif %}>📦 Picked Up</option>
+                            <option value="in_transit" {% if delivery.status == 'picked_up' %}selected{% endif %}>🚗 In Transit</option>
+                            <option value="arrived" {% if delivery.status == 'in_transit' %}selected{% endif %}>📍 Arrived</option>
+                            <option value="completed" {% if delivery.status == 'arrived' %}selected{% endif %}>✓ Completed</option>
+                            <option value="failed">❌ Failed</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Notes (Optional)</label>
+                        <textarea class="form-control" id="notes" rows="3"></textarea>
+                    </div>
+
+                    <button class="btn btn-primary w-100" onclick="updateStatus()">
+                        Update Status
+                    </button>
+                    {% else %}
+                    <div class="alert alert-success mb-0">
+                        <strong>✓ Delivery Completed</strong><br>
+                        <small>{{ delivery.delivered_at }}</small>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <div class="card-footer bg-white">
+                    <small class="text-muted">
+                        <strong>Timeline:</strong><br>
+                        Created: {{ delivery.created_at[:16] }}<br>
+                        {% if delivery.assigned_at %}Assigned: {{ delivery.assigned_at[:16] }}<br>{% endif %}
+                        {% if delivery.picked_up_at %}Picked Up: {{ delivery.picked_up_at[:16] }}<br>{% endif %}
+                        {% if delivery.delivered_at %}Delivered: {{ delivery.delivered_at[:16] }}{% endif %}
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function updateStatus() {
+    const status = document.getElementById('newStatus').value;
+    const notes = document.getElementById('notes').value;
+    
+    if (!confirm(`Update status to "${status}"?`)) return;
+    
+    fetch('/transporters/update-status/{{ delivery.id }}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            status: status,
+            notes: notes
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Status updated successfully!');
+            location.reload();
+        } else {
+            alert('Error: ' + (data.error || 'Could not update status'));
+        }
+    })
+    .catch(error => {
+        alert('Error: ' + error);
+    });
+}
+</script>
+{% endblock %}

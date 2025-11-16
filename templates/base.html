@@ -332,31 +332,53 @@
 <body>
     <nav class="navbar">
         <div class="navbar-container">
-            <a href="/" class="navbar-brand">🏙️ ZimClassifieds</a>
+            <a href="/" class="navbar-brand">🛒 ZimClassifieds</a>
             <div class="navbar-menu">
                 <a href="/">Home</a>
-                <a href="/search">Search</a>
-                <a href="/rentals/listings">Rentals</a>
-                {% if session.get('user_id') %}
-                    <a href="/dashboard">Dashboard</a>
-                    <a href="/messages">Messages</a>
-                    <a href="/listing/new" class="btn btn-primary">+ Post Ad</a>
-                    {# Quick link to rentals dashboard depending on user role #}
-                    {% if session.get('user_type') == 'landlord' %}
-                        <a href="/rentals/landlord/dashboard">My Rentals</a>
-                    {% elif session.get('user_type') == 'tenant' %}
-                        <a href="/rentals/tenant/dashboard">My Rentals</a>
-                    {% endif %}
+                <a href="/products">Browse Products</a>
+                <a href="/bnpl/diaspora-landing" style="background: rgba(255,255,255,0.2); padding: 8px 16px; border-radius: 6px; font-weight: bold;">
+                    💝 Send Gifts Home
+                </a>
+                {% if session.get('transporter_id') %}
+                    <a href="/transporters/dashboard">Transporter Dashboard</a>
+                    <a href="/transporters/available-jobs">Available Jobs</a>
+                    <a href="/transporters/my-deliveries">My Deliveries</a>
+                    <a href="/transporters/logout">Logout</a>
+                {% elif session.get('seller_id') %}
+                    <a href="/sellers/dashboard">Seller Dashboard</a>
+                    <a href="/sellers/products">My Products</a>
+                    <a href="/sellers/orders">Orders</a>
+                    <a href="/logout">Logout</a>
+                {% elif session.get('user_id') %}
+                    <a href="/cart">🛒 Cart</a>
+                    <a href="/dashboard">My Orders</a>
+                    <a href="/bnpl/my-agreements">My Payments</a>
                     <a href="/logout">Logout</a>
                 {% else %}
+                    <a href="/transporters/register">Become a Transporter</a>
+                    <a href="/sellers/register">Become a Seller</a>
                     <a href="/register">Register</a>
                     <a href="/login">Login</a>
-                    <a href="/rentals/register">Rentals Register</a>
-                    <a href="/rentals/login">Rentals Login</a>
                 {% endif %}
             </div>
         </div>
     </nav>
+
+    <!-- Diaspora BNPL Banner -->
+    <div style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; padding: 12px 20px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+        <div style="max-width: 1200px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+            <div style="flex: 1; min-width: 300px;">
+                <strong>🌍 Sending something home?</strong> Pay over 2-6 weeks with BNPL. 
+                <strong>Only 3% fee for diaspora!</strong> 
+                <span style="font-size: 12px; opacity: 0.9;">✓ Police-verified delivery ✓ Video confirmation</span>
+            </div>
+            <div>
+                <a href="/bnpl/diaspora-landing" style="background: white; color: #059669; padding: 8px 20px; border-radius: 6px; text-decoration: none; font-weight: bold; display: inline-block;">
+                    Learn More →
+                </a>
+            </div>
+        </div>
+    </div>
 
     <div class="container">
         {% if request.args.get('success') %}
@@ -370,34 +392,38 @@
         <div class="footer-content">
             <div class="footer-section">
                 <h4>About ZimClassifieds</h4>
-                <p>Zimbabwe's trusted classifieds platform for buying, selling, and connecting with people.</p>
+                <p>Zimbabwe's premier ecommerce marketplace connecting buyers and sellers nationwide.</p>
             </div>
             <div class="footer-section">
-                <h4>Categories</h4>
-                <a href="/search?category=products">Buy & Sell</a>
-                <a href="/search?category=services">Services</a>
-                <a href="/search?category=jobs">Jobs</a>
-                <a href="/search?category=real_estate">Real Estate</a>
-                <a href="/search?category=relationships">Relationships</a>
+                <h4>Shop by Category</h4>
+                <a href="/products?category=Electronics">Electronics</a>
+                <a href="/products?category=Fashion">Fashion</a>
+                <a href="/products?category=Home & Garden">Home & Garden</a>
+                <a href="/products?category=Sports & Outdoors">Sports</a>
+                <a href="/products?category=Books & Media">Books</a>
             </div>
             <div class="footer-section">
-                <h4>Popular Cities</h4>
-                <a href="/search?city=Harare">Harare</a>
-                <a href="/search?city=Bulawayo">Bulawayo</a>
-                <a href="/search?city=Mutare">Mutare</a>
-                <a href="/search?city=Gweru">Gweru</a>
-                <a href="/search?city=Kwekwe">Kwekwe</a>
+                <h4>For Sellers</h4>
+                <a href="/sellers/register">Become a Seller</a>
+                <a href="/sellers/dashboard">Seller Dashboard</a>
+                <a href="/terms">Seller Terms</a>
             </div>
             <div class="footer-section">
-                <h4>Support</h4>
+                <h4>For Transporters</h4>
+                <a href="/transporters/register">Become a Transporter</a>
+                <a href="/transporters/login">Transporter Login</a>
+                <a href="/about">How It Works</a>
+            </div>
+            <div class="footer-section">
+                <h4>Customer Service</h4>
                 <a href="#">Help Center</a>
-                <a href="#">Contact Us</a>
-                <a href="#">Safety Tips</a>
+                <a href="#">Shipping Info</a>
+                <a href="#">Returns</a>
                 <a href="/terms">Terms of Service</a>
                 <a href="/privacy">Privacy Policy</a>
             </div>
         </div>
-        <p>&copy; 2025 ZimClassifieds. All rights reserved. | Made for Zimbabwe 🇿🇼</p>
+        <p>&copy; 2025 ZimClassifieds Marketplace. All rights reserved. | Made for Zimbabwe 🇿🇼</p>
     </footer>
 
     <script>

@@ -1,0 +1,369 @@
+{% extends "base.html" %}
+
+{% block title %}Send Love Home with BNPL - ZimClassifieds{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    {% if is_likely_diaspora %}
+    <!-- Personalized Greeting for Diaspora -->
+    <div class="alert alert-success mb-4" style="border-left: 4px solid #10b981;">
+        <strong>🌍 Welcome from {{ user_country }}!</strong> 
+        You qualify for our special diaspora rate - only 3% fee on all BNPL purchases!
+    </div>
+    {% endif %}
+
+    <!-- Hero Section -->
+    <div class="row align-items-center mb-5">
+        <div class="col-lg-6">
+            <h1 class="display-4 fw-bold mb-3">💝 Send Love Home<br>Pay Over Time</h1>
+            <p class="lead mb-4">
+                Shop for your family in Zimbabwe and spread the cost over weeks.
+                <strong>Only 3% fee</strong> for diaspora customers!
+            </p>
+            <div class="d-flex gap-3 mb-4">
+                <div class="d-flex align-items-center">
+                    <span class="badge bg-success me-2">✓</span>
+                    <span>Pay in USD, GBP, or ZAR</span>
+                </div>
+                <div class="d-flex align-items-center">
+                    <span class="badge bg-success me-2">✓</span>
+                    <span>Police-verified delivery</span>
+                </div>
+            </div>
+            <a href="#how-it-works" class="btn btn-primary btn-lg">Get Started</a>
+            <a href="{{ url_for('index') }}" class="btn btn-outline-primary btn-lg">Browse Products</a>
+        </div>
+        <div class="col-lg-6">
+            <div class="card border-0 shadow-lg">
+                <div class="card-body p-4">
+                    <h5 class="text-center mb-4">🎁 Example: Send a Gift Worth $240</h5>
+                    <div class="row text-center mb-3">
+                        <div class="col-4">
+                            <div class="bg-light p-3 rounded">
+                                <div class="h2 mb-0">$40</div>
+                                <small class="text-muted">per week</small>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="bg-light p-3 rounded">
+                                <div class="h2 mb-0">6</div>
+                                <small class="text-muted">weeks</small>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="bg-light p-3 rounded">
+                                <div class="h2 mb-0">3%</div>
+                                <small class="text-muted">fee only</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="alert alert-info mb-0">
+                        <small>💳 First payment today, then automatic weekly payments</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Benefits Section -->
+    <div class="row mb-5" id="how-it-works">
+        <div class="col-12 text-center mb-4">
+            <h2 class="fw-bold">Why Diaspora Love Us</h2>
+            <p class="text-muted">Built for you, by people who understand</p>
+        </div>
+        
+        <div class="col-md-4 mb-4">
+            <div class="card h-100 border-0 shadow-sm">
+                <div class="card-body text-center p-4">
+                    <div class="display-4 mb-3">🔒</div>
+                    <h5>Police-Verified Drivers</h5>
+                    <p class="text-muted">Every driver undergoes background checks. Your family's safety is our priority.</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4 mb-4">
+            <div class="card h-100 border-0 shadow-sm">
+                <div class="card-body text-center p-4">
+                    <div class="display-4 mb-3">💰</div>
+                    <h5>Special Diaspora Rates</h5>
+                    <p class="text-muted">Only 3% fee (others charge 8-10%). We know you're supporting families back home.</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4 mb-4">
+            <div class="card h-100 border-0 shadow-sm">
+                <div class="card-body text-center p-4">
+                    <div class="display-4 mb-3">📹</div>
+                    <h5>Video Delivery Confirmation</h5>
+                    <p class="text-muted">Watch your gift arrive! Drivers record delivery so you can see your family's reaction.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4 mb-4">
+            <div class="card h-100 border-0 shadow-sm">
+                <div class="card-body text-center p-4">
+                    <div class="display-4 mb-3">⚡</div>
+                    <h5>Instant Approval</h5>
+                    <p class="text-muted">Diaspora customers get instant approval up to $500. No waiting, no hassle.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4 mb-4">
+            <div class="card h-100 border-0 shadow-sm">
+                <div class="card-body text-center p-4">
+                    <div class="display-4 mb-3">🌍</div>
+                    <h5>Multiple Recipients</h5>
+                    <p class="text-muted">Send to mom, dad, and siblings in one order. We deliver to multiple addresses.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4 mb-4">
+            <div class="card h-100 border-0 shadow-sm">
+                <div class="card-body text-center p-4">
+                    <div class="display-4 mb-3">🎉</div>
+                    <h5>Schedule Deliveries</h5>
+                    <p class="text-muted">Birthday coming up? Schedule delivery for the perfect day.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- How It Works -->
+    <div class="row bg-light rounded p-5 mb-5">
+        <div class="col-12 text-center mb-4">
+            <h2 class="fw-bold">How It Works</h2>
+        </div>
+        
+        <div class="col-md-3 mb-4">
+            <div class="text-center">
+                <div class="display-1 text-primary mb-3">1</div>
+                <h5>Choose Products</h5>
+                <p class="text-muted">Browse from verified sellers. Everything from groceries to electronics.</p>
+            </div>
+        </div>
+
+        <div class="col-md-3 mb-4">
+            <div class="text-center">
+                <div class="display-1 text-primary mb-3">2</div>
+                <h5>Select BNPL</h5>
+                <p class="text-muted">At checkout, choose "Pay Over Time". Get instant approval.</p>
+            </div>
+        </div>
+
+        <div class="col-md-3 mb-4">
+            <div class="text-center">
+                <div class="display-1 text-primary mb-3">3</div>
+                <h5>Make First Payment</h5>
+                <p class="text-muted">Pay your first installment. We deliver to your family immediately.</p>
+            </div>
+        </div>
+
+        <div class="col-md-3 mb-4">
+            <div class="text-center">
+                <div class="display-1 text-primary mb-3">4</div>
+                <h5>Auto-Pay Rest</h5>
+                <p class="text-muted">Weekly automatic payments from your card. Easy and stress-free.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Payment Plans -->
+    <div class="row mb-5">
+        <div class="col-12 text-center mb-4">
+            <h2 class="fw-bold">Flexible Payment Plans</h2>
+            <p class="text-muted">Choose the plan that works for your budget</p>
+        </div>
+
+        <div class="col-md-4 mb-4">
+            <div class="card h-100 border-primary">
+                <div class="card-header bg-primary text-white text-center">
+                    <h5 class="mb-0">Quick Buy</h5>
+                </div>
+                <div class="card-body text-center">
+                    <div class="display-4 mb-3">$20-$100</div>
+                    <h6 class="text-primary mb-3">2 Payments</h6>
+                    <ul class="list-unstyled">
+                        <li class="mb-2">✓ 2 weeks</li>
+                        <li class="mb-2">✓ Only 3% fee</li>
+                        <li class="mb-2">✓ Perfect for groceries</li>
+                        <li class="mb-2">✓ Instant approval</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4 mb-4">
+            <div class="card h-100 border-success">
+                <div class="card-header bg-success text-white text-center">
+                    <h5 class="mb-0">Popular</h5>
+                </div>
+                <div class="card-body text-center">
+                    <div class="display-4 mb-3">$100-$500</div>
+                    <h6 class="text-success mb-3">4 Payments</h6>
+                    <ul class="list-unstyled">
+                        <li class="mb-2">✓ 4 weeks</li>
+                        <li class="mb-2">✓ Only 3% fee</li>
+                        <li class="mb-2">✓ Great for electronics</li>
+                        <li class="mb-2">✓ Instant approval</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4 mb-4">
+            <div class="card h-100 border-warning">
+                <div class="card-header bg-warning text-white text-center">
+                    <h5 class="mb-0">Big Gifts</h5>
+                </div>
+                <div class="card-body text-center">
+                    <div class="display-4 mb-3">$500-$2000</div>
+                    <h6 class="text-warning mb-3">6 Payments</h6>
+                    <ul class="list-unstyled">
+                        <li class="mb-2">✓ 6 weeks</li>
+                        <li class="mb-2">✓ Only 3% fee</li>
+                        <li class="mb-2">✓ For appliances, furniture</li>
+                        <li class="mb-2">✓ Instant approval</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Testimonials -->
+    <div class="row bg-primary text-white rounded p-5 mb-5">
+        <div class="col-12 text-center mb-4">
+            <h2 class="fw-bold">What Diaspora Customers Say</h2>
+        </div>
+
+        <div class="col-md-4 mb-4">
+            <div class="card bg-white text-dark h-100">
+                <div class="card-body">
+                    <div class="mb-3">⭐⭐⭐⭐⭐</div>
+                    <p class="mb-3">"Finally! A platform that understands diaspora life. Sent a fridge home and paid over 4 weeks. The video of mum's face when it arrived? Priceless!"</p>
+                    <strong>- Grace M., London 🇬🇧</strong>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4 mb-4">
+            <div class="card bg-white text-dark h-100">
+                <div class="card-body">
+                    <div class="mb-3">⭐⭐⭐⭐⭐</div>
+                    <p class="mb-3">"The 3% fee is amazing compared to other platforms. And knowing the driver is police-verified? I sleep better at night."</p>
+                    <strong>- Tafadzwa K., Johannesburg 🇿🇦</strong>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4 mb-4">
+            <div class="card bg-white text-dark h-100">
+                <div class="card-body">
+                    <div class="mb-3">⭐⭐⭐⭐⭐</div>
+                    <p class="mb-3">"Sent birthday gifts to three family members at once. The scheduling feature is perfect. Will definitely use again!"</p>
+                    <strong>- Mukudzei T., Toronto 🇨🇦</strong>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- FAQ -->
+    <div class="row mb-5">
+        <div class="col-12 text-center mb-4">
+            <h2 class="fw-bold">Common Questions</h2>
+        </div>
+
+        <div class="col-lg-8 mx-auto">
+            <div class="accordion" id="faqAccordion">
+                <div class="accordion-item">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#faq1">
+                            How do I qualify for the diaspora rate?
+                        </button>
+                    </h2>
+                    <div id="faq1" class="accordion-collapse collapse show" data-bs-parent="#faqAccordion">
+                        <div class="accordion-body">
+                            If you're paying with an international card (UK, USA, SA, Canada, etc.) or your shipping address is outside Zimbabwe, you automatically get the 3% diaspora rate. No application needed!
+                        </div>
+                    </div>
+                </div>
+
+                <div class="accordion-item">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq2">
+                            What if my family member isn't home?
+                        </button>
+                    </h2>
+                    <div id="faq2" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                        <div class="accordion-body">
+                            Our police-verified drivers will call ahead and arrange a convenient time. If no one's home, they'll leave a secure delivery notice and reschedule at no extra cost.
+                        </div>
+                    </div>
+                </div>
+
+                <div class="accordion-item">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq3">
+                            What happens if I miss a payment?
+                        </button>
+                    </h2>
+                    <div id="faq3" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                        <div class="accordion-body">
+                            We'll send reminders before each payment. If you miss one, we'll try again in 3 days. We work with you - life happens! Just contact our support team.
+                        </div>
+                    </div>
+                </div>
+
+                <div class="accordion-item">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq4">
+                            Can I pay off early?
+                        </button>
+                    </h2>
+                    <div id="faq4" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                        <div class="accordion-body">
+                            Absolutely! Pay off your balance anytime with no penalty. You'll only pay the fee for the time you used the service.
+                        </div>
+                    </div>
+                </div>
+
+                <div class="accordion-item">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq5">
+                            Is there a limit to how much I can send?
+                        </button>
+                    </h2>
+                    <div id="faq5" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                        <div class="accordion-body">
+                            Diaspora customers get instant approval up to $500 on first order. After your first successful payment plan, limits increase to $2,000+. We grow with you!
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- CTA Section -->
+    <div class="row">
+        <div class="col-lg-8 mx-auto text-center bg-gradient-primary text-white rounded p-5">
+            <h2 class="fw-bold mb-3">Ready to Send Love Home?</h2>
+            <p class="lead mb-4">Join thousands of diaspora customers who trust ZimClassifieds</p>
+            <a href="{{ url_for('register') }}" class="btn btn-light btn-lg me-3">Create Free Account</a>
+            <a href="{{ url_for('index') }}" class="btn btn-outline-light btn-lg">Start Shopping</a>
+            <div class="mt-4">
+                <small>✓ No credit checks ✓ Instant approval ✓ Cancel anytime</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.bg-gradient-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+</style>
+{% endblock %}

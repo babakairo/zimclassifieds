@@ -30,16 +30,23 @@ STRIPE_PUBLIC_KEY = os.environ.get('STRIPE_PUBLIC_KEY') or 'pk_test_placeholder'
 
 serializer = URLSafeTimedSerializer(app.secret_key)
 
-# Initialize database on app startup
+# Initialize database schema once per process (Flask 2.3 compatible)
+schema_initialized = False
+
 @app.before_request
-def before_request():
-    """Initialize database tables if they don't exist."""
+def ensure_schema():
+    """Ensure required tables exist (runs only once per process)."""
+    global schema_initialized
+    if schema_initialized:
+        return
     try:
         db = get_db()
-        db.execute('SELECT 1 FROM users LIMIT 1')
+        # Check a core table; if missing, create full schema
+        db.execute('SELECT 1 FROM products LIMIT 1')
         db.close()
     except Exception:
         init_db()
+    schema_initialized = True
 
 # Image upload configuration
 UPLOAD_FOLDER = 'static/uploads'
@@ -50,20 +57,85 @@ Path(UPLOAD_FOLDER).mkdir(parents=True, exist_ok=True)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['MAX_CONTENT_LENGTH'] = MAX_FILE_SIZE
 
-# Zimbabwe locations (for delivery)
+# Zimbabwe locations (for delivery) - Complete list of cities and towns
 ZIMBABWE_CITIES = {
+    # Major Cities
     'Harare': ['Harare CBD', 'Southerton', 'Northgate', 'Avondale', 'Borrowdale', 
                'Belgravia', 'Mount Pleasant', 'Waterfalls', 'Eastlea', 'Budiriro',
                'Highfield', 'Mbare', 'Glen Norah', 'Warren Park', 'Chitungwiza',
-               'Kambuzuma', 'Mufakose', 'Dzivarasekwa', 'Sunningdale', 'Midlands'],
+               'Kambuzuma', 'Mufakose', 'Dzivarasekwa', 'Sunningdale', 'Hatfield',
+               'Greendale', 'Marlborough', 'Alexandra Park', 'Groombridge', 'Mabelreign',
+               'Mount Hampden', 'Epworth', 'Ruwa', 'Norton', 'Dema'],
     'Bulawayo': ['Bulawayo CBD', 'Ascot', 'Hillside', 'Whitestone', 'Magwegwe', 
-                 'Nkulumane', 'Cowdray Park', 'Njube', 'Luveve'],
-    'Mutare': ['Mutare CBD', 'Sakubva', 'Chikanga', 'Dangamvura', 'Westridge'],
-    'Gweru': ['Gweru CBD', 'Mkoba', 'Southdowns', 'Vungu'],
-    'Kwekwe': ['Kwekwe CBD', 'Redcliff', 'Amaveni'],
-    'Chinhoyi': ['Chinhoyi CBD', 'Chinhoyi Suburbs'],
-    'Victoria Falls': ['Victoria Falls CBD', 'Chinotimba'],
-    'Kadoma': ['Kadoma CBD', 'Rimuka'],
+                 'Nkulumane', 'Cowdray Park', 'Njube', 'Luveve', 'Northend',
+                 'Burnside', 'Famona', 'Parklands', 'Suburbs', 'Pumula',
+                 'Emakhandeni', 'Entumbane', 'Makokoba', 'Lobengula', 'Barbourfields'],
+    'Mutare': ['Mutare CBD', 'Sakubva', 'Chikanga', 'Dangamvura', 'Westridge',
+               'Greenside', 'Murambi', 'Fern Valley', 'Morningside', 'Palmerstone'],
+    'Gweru': ['Gweru CBD', 'Mkoba', 'Southdowns', 'Vungu', 'Ascot', 'Senga', 
+              'Mambo', 'Woodlands', 'Ridgemont', 'Nashville'],
+    
+    # Provincial Cities & Large Towns
+    'Masvingo': ['Masvingo CBD', 'Mucheke', 'Rujeko', 'Rhodene', 'Target Kopje'],
+    'Kwekwe': ['Kwekwe CBD', 'Redcliff', 'Amaveni', 'Mbizo', 'Torwood'],
+    'Kadoma': ['Kadoma CBD', 'Rimuka', 'Waverly', 'Ngezi'],
+    'Chinhoyi': ['Chinhoyi CBD', 'Chikonohono', 'Gunhill', 'Cold Comfort'],
+    'Marondera': ['Marondera CBD', 'Dombotombo', 'Cherutombo', 'Nyameni'],
+    'Bindura': ['Bindura CBD', 'Chipadze', 'Aerodrome', 'Museve'],
+    'Zvishavane': ['Zvishavane CBD', 'Mandava', 'Makwasha'],
+    'Gwanda': ['Gwanda CBD', 'Spitzkop', 'Jahunda'],
+    'Kariba': ['Kariba CBD', 'Mahombekombe', 'Nyamhunga', 'Heights'],
+    'Karoi': ['Karoi CBD', 'Chikangwe', 'Bingham'],
+    
+    # Medium Towns
+    'Victoria Falls': ['Victoria Falls CBD', 'Chinotimba', 'Mkhosana'],
+    'Hwange': ['Hwange CBD', 'Empumalanga', 'Number 1', 'Number 2'],
+    'Chegutu': ['Chegutu CBD', 'Pfupajena', 'Mhondoro'],
+    'Rusape': ['Rusape CBD', 'Vengere', 'Tsanzaguru'],
+    'Chiredzi': ['Chiredzi CBD', 'Tshovani', 'Hippo Valley'],
+    'Chipinge': ['Chipinge CBD', 'Mubvumbi', 'Checheche'],
+    'Shurugwi': ['Shurugwi CBD', 'Mhandamabwe', 'Hanke'],
+    'Redcliff': ['Redcliff CBD', 'Torwood', 'Rutendo'],
+    'Chivhu': ['Chivhu CBD', 'Makamure'],
+    'Gokwe': ['Gokwe CBD', 'Gokwe Centre'],
+    'Mvurwi': ['Mvurwi CBD', 'Bindura Road'],
+    'Shamva': ['Shamva CBD', 'Shamva Mine'],
+    
+    # Small Towns
+    'Beitbridge': ['Beitbridge CBD', 'Dulibadzimu'],
+    'Plumtree': ['Plumtree CBD', 'Plumtree Suburbs'],
+    'Lupane': ['Lupane CBD', 'Lupane Centre'],
+    'Glendale': ['Glendale CBD'],
+    'Centenary': ['Centenary CBD'],
+    'Guruve': ['Guruve CBD'],
+    'Mvuma': ['Mvuma CBD'],
+    'Mashava': ['Mashava CBD'],
+    'Filabusi': ['Filabusi CBD'],
+    'Esigodini': ['Esigodini CBD'],
+    'Binga': ['Binga CBD'],
+    'Nyanga': ['Nyanga CBD', 'Troutbeck'],
+    'Mutoko': ['Mutoko CBD'],
+    'Mount Darwin': ['Mount Darwin CBD'],
+    'Murambinda': ['Murambinda CBD'],
+    'Gutu': ['Gutu CBD'],
+    'Bikita': ['Bikita CBD'],
+    'Zaka': ['Zaka CBD'],
+    'Mberengwa': ['Mberengwa CBD'],
+    'Insiza': ['Insiza CBD'],
+    'Buhera': ['Buhera CBD'],
+    'Chimanimani': ['Chimanimani CBD'],
+    'Uzumba': ['Uzumba CBD'],
+    'Mudzi': ['Mudzi CBD'],
+    'Concession': ['Concession CBD'],
+    'Beatrice': ['Beatrice CBD'],
+    'Macheke': ['Macheke CBD'],
+    'Headlands': ['Headlands CBD'],
+    'Inyati': ['Inyati CBD'],
+    'Figtree': ['Figtree CBD'],
+    'Zvimba': ['Zvimba CBD'],
+    'Alaska': ['Alaska CBD'],
+    'Banket': ['Banket CBD'],
+    'Mazowe': ['Mazowe CBD'],
 }
 
 # Product categories (ecommerce only)
@@ -176,6 +248,16 @@ def init_db():
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (seller_id) REFERENCES sellers(id)
+        );
+
+        CREATE TABLE IF NOT EXISTS product_images (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            product_id INTEGER NOT NULL,
+            image_path TEXT NOT NULL,
+            display_order INTEGER DEFAULT 0,
+            is_primary INTEGER DEFAULT 0,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (product_id) REFERENCES products(id)
         );
 
         CREATE TABLE IF NOT EXISTS inventory (
@@ -300,6 +382,58 @@ def init_db():
             FOREIGN KEY (user_id) REFERENCES users(user_id)
         );
 
+        CREATE TABLE IF NOT EXISTS transporters (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            transporter_id TEXT UNIQUE NOT NULL,
+            user_id TEXT NOT NULL,
+            transport_type TEXT NOT NULL,
+            vehicle_registration TEXT,
+            vehicle_make_model TEXT,
+            service_type TEXT NOT NULL,
+            primary_city TEXT NOT NULL,
+            coverage_areas TEXT,
+            id_number TEXT,
+            drivers_license TEXT,
+            police_clearance TEXT,
+            clearance_issue_date TEXT,
+            clearance_expiry_date TEXT,
+            rating REAL DEFAULT 5.0,
+            total_deliveries INTEGER DEFAULT 0,
+            completed_deliveries INTEGER DEFAULT 0,
+            total_earnings REAL DEFAULT 0,
+            status TEXT DEFAULT 'pending',
+            verified_at TIMESTAMP,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_id) REFERENCES users(user_id)
+        );
+
+        CREATE TABLE IF NOT EXISTS deliveries (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            delivery_id TEXT UNIQUE NOT NULL,
+            order_id INTEGER NOT NULL,
+            transporter_id INTEGER,
+            delivery_type TEXT NOT NULL,
+            pickup_address TEXT,
+            pickup_city TEXT,
+            pickup_suburb TEXT,
+            delivery_address TEXT,
+            delivery_city TEXT,
+            delivery_suburb TEXT,
+            distance_km REAL,
+            delivery_fee REAL NOT NULL,
+            status TEXT DEFAULT 'pending_assignment',
+            current_location TEXT,
+            tracking_notes TEXT,
+            assigned_at TIMESTAMP,
+            picked_up_at TIMESTAMP,
+            delivered_at TIMESTAMP,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (order_id) REFERENCES orders(id),
+            FOREIGN KEY (transporter_id) REFERENCES transporters(id)
+        );
+
         CREATE TABLE IF NOT EXISTS seller_commissions (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             commission_id TEXT UNIQUE NOT NULL,
@@ -316,6 +450,42 @@ def init_db():
             FOREIGN KEY (order_id) REFERENCES orders(id)
         );
 
+        -- BNPL (Buy Now Pay Later) Tables
+        CREATE TABLE IF NOT EXISTS bnpl_agreements (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            agreement_id TEXT UNIQUE NOT NULL,
+            user_id TEXT NOT NULL,
+            order_id INTEGER,
+            principal_amount REAL NOT NULL,
+            fee_amount REAL NOT NULL,
+            total_amount REAL NOT NULL,
+            installment_amount REAL NOT NULL,
+            installments INTEGER NOT NULL,
+            duration_weeks INTEGER NOT NULL,
+            fee_percent REAL NOT NULL,
+            is_diaspora INTEGER DEFAULT 0,
+            user_tier TEXT DEFAULT 'basic',
+            payment_schedule TEXT,
+            status TEXT DEFAULT 'active',
+            completed_at TIMESTAMP,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_id) REFERENCES users(user_id),
+            FOREIGN KEY (order_id) REFERENCES orders(id)
+        );
+
+        CREATE TABLE IF NOT EXISTS bnpl_payments (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            payment_id TEXT UNIQUE NOT NULL,
+            agreement_id TEXT NOT NULL,
+            installment_number INTEGER NOT NULL,
+            amount REAL NOT NULL,
+            payment_method TEXT,
+            status TEXT DEFAULT 'pending',
+            payment_date TIMESTAMP,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (agreement_id) REFERENCES bnpl_agreements(agreement_id)
+        );
+
         -- Indices for performance
         CREATE INDEX IF NOT EXISTS idx_products_seller ON products(seller_id);
         CREATE INDEX IF NOT EXISTS idx_products_category ON products(category);
@@ -329,6 +499,9 @@ def init_db():
         CREATE INDEX IF NOT EXISTS idx_product_reviews_product ON product_reviews(product_id);
         CREATE INDEX IF NOT EXISTS idx_product_reviews_user ON product_reviews(user_id);
         CREATE INDEX IF NOT EXISTS idx_seller_ratings_seller ON seller_ratings(seller_id);
+        CREATE INDEX IF NOT EXISTS idx_bnpl_agreements_user ON bnpl_agreements(user_id);
+        CREATE INDEX IF NOT EXISTS idx_bnpl_agreements_status ON bnpl_agreements(status);
+        CREATE INDEX IF NOT EXISTS idx_bnpl_payments_agreement ON bnpl_payments(agreement_id);
         CREATE INDEX IF NOT EXISTS idx_payment_transactions_order ON payment_transactions(order_id);
         CREATE INDEX IF NOT EXISTS idx_seller_commissions_seller ON seller_commissions(seller_id);
     ''')
@@ -395,6 +568,24 @@ def index():
                          featured_products=featured_products,
                          top_sellers=top_sellers,
                          categories=PRODUCT_CATEGORIES)
+
+
+@app.route('/privacy')
+def privacy():
+    """Privacy policy page."""
+    return render_template('privacy.html')
+
+
+@app.route('/terms')
+def terms():
+    """Terms & Conditions page."""
+    return render_template('terms.html')
+
+
+@app.route('/about')
+def about():
+    """About / How It Works page."""
+    return render_template('about.html')
 
 
 @app.route('/register', methods=['GET', 'POST'])
@@ -511,22 +702,29 @@ def products():
     
     db = get_db()
     
-    query = '''
-        SELECT p.*, s.store_name, s.store_slug
-        FROM products p
-        JOIN sellers s ON p.seller_id = s.id
-        WHERE p.status = 'active' AND p.stock_quantity > 0
-    '''
-    params = []
+    where_conditions = ['p.status = ?']
+    params = ['active']
     
     if category:
-        query += ' AND p.category = ?'
+        where_conditions.append('p.category = ?')
         params.append(category)
     
     if search:
-        query += ' AND (p.name LIKE ? OR p.description LIKE ?)'
+        where_conditions.append('(p.name LIKE ? OR p.description LIKE ?)')
         search_term = f'%{search}%'
         params.extend([search_term, search_term])
+    
+    query = f'''
+        SELECT p.*, s.store_name, s.store_slug,
+               (p.stock_quantity > 0) as in_stock,
+               COALESCE(AVG(pr.rating), 0) as avg_rating,
+               COUNT(DISTINCT pr.id) as review_count
+        FROM products p
+        JOIN sellers s ON p.seller_id = s.id
+        LEFT JOIN product_reviews pr ON p.id = pr.product_id AND pr.status = 'active'
+        WHERE {' AND '.join(where_conditions)}
+        GROUP BY p.id
+    '''
     
     # Sorting
     if sort == 'price_asc':
@@ -565,6 +763,13 @@ def product_detail(product_id):
         db.close()
         return render_template('error.html', message='Product not found'), 404
     
+    # Get product images
+    product_images = db.execute('''
+        SELECT * FROM product_images 
+        WHERE product_id = ? 
+        ORDER BY is_primary DESC, display_order ASC
+    ''', (product['id'],)).fetchall()
+    
     # Increment views
     db.execute('UPDATE products SET views = views + 1 WHERE product_id = ?', (product_id,))
     
@@ -575,13 +780,14 @@ def product_detail(product_id):
         JOIN users u ON r.user_id = u.user_id
         WHERE r.product_id = ? AND r.status = 'active'
         ORDER BY r.created_at DESC
-    ''', (db.execute('SELECT id FROM products WHERE product_id = ?', (product_id,)).fetchone()[0],)).fetchall()
+    ''', (product['id'],)).fetchall()
     
     db.commit()
     db.close()
     
     return render_template('products/detail.html',
                          product=product,
+                         product_images=product_images,
                          reviews=reviews)
 
 
@@ -981,6 +1187,25 @@ try:
 except Exception as e:
     print(f"Warning: Could not load sellers blueprint: {e}")
 
+# Register transporters blueprint
+try:
+    from transporters import transporters_bp
+    app.register_blueprint(transporters_bp, url_prefix='/transporters')
+except Exception as e:
+    print(f"Warning: Could not load transporters blueprint: {e}")
+
+# Register BNPL blueprint
+try:
+    from bnpl import bnpl_bp
+    app.register_blueprint(bnpl_bp, url_prefix='/bnpl')
+except Exception as e:
+    print(f"Warning: Could not load BNPL blueprint: {e}")
+
 
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    # Allow overriding host/port/debug via environment variables
+    # Default to 5001 to avoid common collisions with other local tools
+    port = int(os.environ.get('PORT', 5001))
+    host = os.environ.get('HOST', '0.0.0.0')
+    debug = os.environ.get('FLASK_DEBUG', '1') == '1'
+    app.run(debug=debug, host=host, port=port)

@@ -15,7 +15,7 @@
             </div>
             {% endif %}
             
-            <form method="POST" class="needs-validation">
+            <form method="POST" enctype="multipart/form-data" class="needs-validation">
                 <div class="card border-0 shadow-sm">
                     <div class="card-body p-4">
                         <!-- Basic Info -->
@@ -53,6 +53,49 @@
                             <textarea class="form-control" id="description" name="description" rows="4" required>{{ product.description if product else '' }}</textarea>
                             <small class="text-muted">Include key details, condition, and features</small>
                         </div>
+
+                        <!-- Images -->
+                        <h5 class="mb-3 mt-4">Product Images</h5>
+                        
+                        {% if product and product_images %}
+                        <div class="mb-3">
+                            <label class="form-label">Current Images</label>
+                            <div class="row g-2" id="currentImages">
+                                {% for img in product_images %}
+                                <div class="col-md-3" data-image-id="{{ img.id }}">
+                                    <div class="position-relative">
+                                        <img src="/static/{{ img.image_path }}" class="img-thumbnail" style="height: 120px; width: 100%; object-fit: cover;">
+                                        <button type="button" class="btn btn-sm btn-danger position-absolute top-0 end-0 m-1" 
+                                                onclick="deleteImage({{ img.id }}, '{{ product.product_id }}')">
+                                            <i class="bi bi-trash"></i> ✕
+                                        </button>
+                                        {% if img.is_primary %}
+                                        <span class="badge bg-primary position-absolute bottom-0 start-0 m-1">Primary</span>
+                                        {% else %}
+                                        <button type="button" class="btn btn-sm btn-outline-primary position-absolute bottom-0 start-0 m-1"
+                                                onclick="setPrimaryImage({{ img.id }}, '{{ product.product_id }}')">
+                                            Set Primary
+                                        </button>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        {% endif %}
+                        
+                        <div class="mb-3">
+                            <label for="images" class="form-label">
+                                {% if product %}Add More Images{% else %}Upload Images{% endif %}
+                                <span class="text-muted">(Up to 10 images, max 5MB each)</span>
+                            </label>
+                            <input type="file" class="form-control" id="images" name="images" 
+                                   accept="image/png,image/jpeg,image/jpg,image/gif,image/webp" 
+                                   multiple onchange="previewImages(this)">
+                            <small class="text-muted">First image will be the primary image. Formats: JPG, PNG, GIF, WEBP</small>
+                        </div>
+                        
+                        <div id="imagePreview" class="row g-2 mb-3"></div>
                         
                         <!-- Pricing & Stock -->
                         <h5 class="mb-3 mt-4">Pricing & Inventory</h5>
@@ -100,4 +143,85 @@
         </div>
     </div>
 </div>
+
+<script>
+function previewImages(input) {
+    const preview = document.getElementById('imagePreview');
+    preview.innerHTML = '';
+    
+    if (input.files) {
+        const maxFiles = 10;
+        const files = Array.from(input.files).slice(0, maxFiles);
+        
+        if (input.files.length > maxFiles) {
+            alert(`Only ${maxFiles} images allowed. First ${maxFiles} selected.`);
+        }
+        
+        files.forEach((file, index) => {
+            if (file.size > 5 * 1024 * 1024) {
+                alert(`${file.name} is too large. Max size is 5MB.`);
+                return;
+            }
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const col = document.createElement('div');
+                col.className = 'col-md-3';
+                col.innerHTML = `
+                    <div class="position-relative">
+                        <img src="${e.target.result}" class="img-thumbnail" style="height: 120px; width: 100%; object-fit: cover;">
+                        <span class="badge bg-secondary position-absolute top-0 start-0 m-1">${index + 1}</span>
+                        ${index === 0 ? '<span class="badge bg-primary position-absolute bottom-0 start-0 m-1">Primary</span>' : ''}
+                    </div>
+                `;
+                preview.appendChild(col);
+            };
+            reader.readAsDataURL(file);
+        });
+    }
+}
+
+function deleteImage(imageId, productId) {
+    if (!confirm('Delete this image?')) return;
+    
+    fetch(`/sellers/product/${productId}/image/${imageId}/delete`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            document.querySelector(`[data-image-id="${imageId}"]`).remove();
+            alert('Image deleted successfully');
+        } else {
+            alert('Error deleting image: ' + (data.error || 'Unknown error'));
+        }
+    })
+    .catch(error => {
+        alert('Error deleting image: ' + error);
+    });
+}
+
+function setPrimaryImage(imageId, productId) {
+    fetch(`/sellers/product/${productId}/image/${imageId}/set-primary`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert('Error setting primary image: ' + (data.error || 'Unknown error'));
+        }
+    })
+    .catch(error => {
+        alert('Error setting primary image: ' + error);
+    });
+}
+</script>
 {% endblock %}

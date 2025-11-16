@@ -1,0 +1,141 @@
+{% extends "base.html" %}
+
+{% block title %}Profile - Transporter{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <h1 class="h3 mb-4">⚙️ Transporter Profile</h1>
+
+    {% if request.args.get('success') %}
+    <div class="alert alert-success alert-dismissible fade show">
+        {{ request.args.get('success') }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    {% endif %}
+
+    <div class="row">
+        <div class="col-md-8">
+            <form method="POST">
+                <div class="card border-0 shadow-sm mb-4">
+                    <div class="card-header bg-white">
+                        <h6 class="mb-0">Contact Information</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label class="form-label">Full Name</label>
+                            <input type="text" class="form-control" value="{{ transporter.full_name }}" disabled>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Email</label>
+                            <input type="email" class="form-control" value="{{ transporter.email }}" disabled>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="phone" class="form-label">Phone Number</label>
+                            <input type="tel" class="form-control" id="phone" name="phone" value="{{ transporter.phone }}" required>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card border-0 shadow-sm mb-4">
+                    <div class="card-header bg-white">
+                        <h6 class="mb-0">Vehicle Information</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label class="form-label">Transport Type</label>
+                            <input type="text" class="form-control" value="{{ transporter.transport_type|title }}" disabled>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="vehicle_registration" class="form-label">Vehicle Registration</label>
+                            <input type="text" class="form-control" id="vehicle_registration" name="vehicle_registration" 
+                                   value="{{ transporter.vehicle_registration }}">
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="vehicle_make_model" class="form-label">Make & Model</label>
+                            <input type="text" class="form-control" id="vehicle_make_model" name="vehicle_make_model" 
+                                   value="{{ transporter.vehicle_make_model }}">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card border-0 shadow-sm mb-4">
+                    <div class="card-header bg-white">
+                        <h6 class="mb-0">Service Coverage</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label class="form-label">Service Type</label>
+                            <input type="text" class="form-control" value="{{ transporter.service_type|title }}" disabled>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Primary City</label>
+                            <input type="text" class="form-control" value="{{ transporter.primary_city }}" disabled>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Coverage Areas</label>
+                            <div class="row">
+                                {% for city in cities.keys() %}
+                                {% set selected = city in transporter.coverage_areas %}
+                                <div class="col-md-6 mb-2">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="coverage_areas" 
+                                               value="{{ city }}" id="area_{{ city }}" {% if selected %}checked{% endif %}>
+                                        <label class="form-check-label" for="area_{{ city }}">
+                                            {{ city }}
+                                        </label>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-primary">Update Profile</button>
+                <a href="{{ url_for('transporters.dashboard') }}" class="btn btn-outline-secondary">Cancel</a>
+            </form>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white">
+                    <h6 class="mb-0">Account Status</h6>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <small class="text-muted d-block">Status</small>
+                        {% if transporter.status == 'active' %}
+                        <span class="badge bg-success">Active</span>
+                        {% elif transporter.status == 'pending' %}
+                        <span class="badge bg-warning">Pending Verification</span>
+                        {% else %}
+                        <span class="badge bg-danger">Suspended</span>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-3">
+                        <small class="text-muted d-block">Rating</small>
+                        <span class="text-warning">★ {{ "%.1f"|format(transporter.rating or 5.0) }}</span>
+                    </div>
+
+                    <div class="mb-3">
+                        <small class="text-muted d-block">Total Deliveries</small>
+                        <strong>{{ transporter.total_deliveries or 0 }}</strong>
+                    </div>
+
+                    <div class="mb-0">
+                        <small class="text-muted d-block">Member Since</small>
+                        <small>{{ transporter.created_at[:10] }}</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

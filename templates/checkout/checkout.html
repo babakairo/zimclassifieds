@@ -77,6 +77,17 @@
                         <h5 class="mb-0">Payment Method</h5>
                     </div>
                     <div class="card-body">
+                        <!-- BNPL Option (Featured) -->
+                        <div class="form-check mb-3 p-3" style="background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); border-radius: 8px; border: 2px solid #10b981;">
+                            <input class="form-check-input" type="radio" name="payment_method" id="bnpl_payment" value="bnpl" onchange="updatePaymentUI()">
+                            <label class="form-check-label" for="bnpl_payment" style="cursor: pointer;">
+                                <strong style="font-size: 1.1em;">💝 Buy Now, Pay Later (BNPL)</strong>
+                                <span class="badge bg-success ms-2">New!</span>
+                                <br>
+                                <small class="text-muted">Pay in weekly installments. Only 3% fee for diaspora!</small>
+                            </label>
+                        </div>
+                        
                         <div class="form-check mb-3">
                             <input class="form-check-input" type="radio" name="payment_method" id="stripe" value="stripe_card" checked onchange="updatePaymentUI()">
                             <label class="form-check-label" for="stripe">
@@ -97,6 +108,86 @@
                             <label class="form-check-label" for="cash_on_delivery">
                                 📦 Cash on Delivery
                             </label>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- BNPL Details Section -->
+                <div id="bnplSection" class="card border-0 shadow-sm mb-3" style="display: none;">
+                    <div class="card-header text-white" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%);">
+                        <h5 class="mb-0">💝 BNPL Payment Plan</h5>
+                    </div>
+                    <div class="card-body">
+                        <!-- Loading -->
+                        <div id="bnplLoading" class="text-center py-3">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Checking...</span>
+                            </div>
+                            <p class="mt-2 mb-0">Checking your eligibility...</p>
+                        </div>
+                        
+                        <!-- Eligibility Result -->
+                        <div id="bnplEligibility" style="display: none;">
+                            <!-- Approved -->
+                            <div id="bnplApproved" style="display: none;">
+                                <div class="alert alert-success mb-3">
+                                    <strong>✅ You're approved!</strong>
+                                    <span id="diasporaMessage"></span>
+                                </div>
+                                
+                                <h6 class="mb-3">Your Payment Plan:</h6>
+                                <div class="table-responsive mb-3">
+                                    <table class="table table-sm">
+                                        <tr>
+                                            <td>Order Total:</td>
+                                            <td class="text-end"><strong>ZWL <span id="bnplOrderTotal">0.00</span></strong></td>
+                                        </tr>
+                                        <tr>
+                                            <td>BNPL Fee (<span id="bnplFeePercent">0</span>%):</td>
+                                            <td class="text-end">ZWL <span id="bnplFeeAmount">0.00</span></td>
+                                        </tr>
+                                        <tr class="table-light">
+                                            <td><strong>Total to Pay:</strong></td>
+                                            <td class="text-end"><strong>ZWL <span id="bnplTotalAmount">0.00</span></strong></td>
+                                        </tr>
+                                    </table>
+                                </div>
+                                
+                                <div class="alert alert-info">
+                                    <strong>📅 Payment Schedule:</strong><br>
+                                    <div id="bnplSchedule"></div>
+                                </div>
+                                
+                                <div class="alert alert-warning">
+                                    <small>
+                                        <strong>⚠️ Important:</strong>
+                                        <ul class="mb-0 mt-1">
+                                            <li>First payment due TODAY (via EcoCash/OneMoney)</li>
+                                            <li>Remaining payments: Every 7 days</li>
+                                            <li>We'll send SMS reminders before each payment</li>
+                                            <li>Late payments incur $5 penalty</li>
+                                        </ul>
+                                    </small>
+                                </div>
+                                
+                                <div class="form-check mb-3">
+                                    <input class="form-check-input" type="checkbox" id="bnplAgree" required>
+                                    <label class="form-check-label" for="bnplAgree">
+                                        <small>I agree to the <a href="/terms" target="_blank">BNPL Terms & Conditions</a></small>
+                                    </label>
+                                </div>
+                            </div>
+                            
+                            <!-- Declined -->
+                            <div id="bnplDeclined" style="display: none;">
+                                <div class="alert alert-danger">
+                                    <strong>❌ Not eligible for BNPL</strong><br>
+                                    <span id="bnplDeclineReason"></span>
+                                </div>
+                                <p class="mb-0">
+                                    <small>Please verify your account or choose another payment method.</small>
+                                </p>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -172,15 +263,106 @@ cardElement.on('change', function(event) {
     }
 });
 
+// BNPL Global variables
+let bnplPlan = null;
+
 function updatePaymentUI() {
     const stripeSection = document.getElementById('stripeSection');
+    const bnplSection = document.getElementById('bnplSection');
     const paymentMethod = document.querySelector('input[name="payment_method"]:checked').value;
     
+    // Hide all sections
+    stripeSection.style.display = 'none';
+    bnplSection.style.display = 'none';
+    
+    // Show relevant section
     if (paymentMethod === 'stripe_card') {
         stripeSection.style.display = '';
-    } else {
-        stripeSection.style.display = 'none';
+    } else if (paymentMethod === 'bnpl') {
+        bnplSection.style.display = '';
+        checkBNPLEligibility();
     }
+}
+
+function checkBNPLEligibility() {
+    const loading = document.getElementById('bnplLoading');
+    const eligibility = document.getElementById('bnplEligibility');
+    const approved = document.getElementById('bnplApproved');
+    const declined = document.getElementById('bnplDeclined');
+    
+    // Show loading
+    loading.style.display = '';
+    eligibility.style.display = 'none';
+    
+    // Get order total
+    const orderTotal = {{ total }};
+    
+    // Check eligibility
+    fetch('/bnpl/check-eligibility', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            amount: orderTotal
+        })
+    })
+    .then(r => r.json())
+    .then(data => {
+        loading.style.display = 'none';
+        eligibility.style.display = '';
+        
+        if (data.eligible) {
+            // Show approval
+            approved.style.display = '';
+            declined.style.display = 'none';
+            
+            // Store plan
+            bnplPlan = data.plan;
+            
+            // Update UI
+            document.getElementById('bnplOrderTotal').textContent = orderTotal.toFixed(2);
+            document.getElementById('bnplFeePercent').textContent = data.plan.fee_percent;
+            document.getElementById('bnplFeeAmount').textContent = data.plan.fee_amount.toFixed(2);
+            document.getElementById('bnplTotalAmount').textContent = data.plan.total_amount.toFixed(2);
+            
+            // Show diaspora message
+            if (data.is_diaspora) {
+                document.getElementById('diasporaMessage').innerHTML = 
+                    '<br>🌍 <strong>Diaspora Special:</strong> You got the 3% rate!';
+            }
+            
+            // Build payment schedule
+            let scheduleHTML = '';
+            data.plan.schedule.forEach((payment, index) => {
+                const paymentDate = new Date(payment.due_date);
+                const dateStr = paymentDate.toLocaleDateString('en-GB');
+                const status = index === 0 ? '<span class="badge bg-warning">Due Today</span>' : 
+                              '<span class="badge bg-secondary">Upcoming</span>';
+                scheduleHTML += `
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <span>Payment ${index + 1}: ${dateStr}</span>
+                        <span><strong>ZWL ${payment.amount.toFixed(2)}</strong> ${status}</span>
+                    </div>
+                `;
+            });
+            document.getElementById('bnplSchedule').innerHTML = scheduleHTML;
+            
+        } else {
+            // Show decline
+            approved.style.display = 'none';
+            declined.style.display = '';
+            document.getElementById('bnplDeclineReason').textContent = data.reason;
+        }
+    })
+    .catch(err => {
+        console.error('BNPL check error:', err);
+        loading.style.display = 'none';
+        eligibility.style.display = '';
+        declined.style.display = '';
+        approved.style.display = 'none';
+        alert('Error checking BNPL eligibility. Please try again.');
+    });
 }
 
 function processCheckout(event) {
@@ -189,12 +371,58 @@ function processCheckout(event) {
     const paymentMethod = document.querySelector('input[name="payment_method"]:checked').value;
     
     if (paymentMethod === 'stripe_card') {
-        // Process Stripe payment
         processStripePayment();
+    } else if (paymentMethod === 'bnpl') {
+        processBNPLPayment();
     } else {
-        // Process other payment methods
         processOtherPayment();
     }
+}
+
+function processBNPLPayment() {
+    // Check if terms agreed
+    const agreed = document.getElementById('bnplAgree');
+    if (!agreed || !agreed.checked) {
+        alert('Please agree to the BNPL terms and conditions');
+        return;
+    }
+    
+    const submitBtn = document.getElementById('submitBtn');
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Creating BNPL Agreement...';
+    
+    const formData = {
+        shipping_address: document.getElementById('shipping_address').value,
+        shipping_city: document.getElementById('shipping_city').value,
+        shipping_suburb: document.getElementById('shipping_suburb').value,
+        payment_method: 'bnpl',
+        bnpl_plan: bnplPlan
+    };
+    
+    fetch('/bnpl/create-agreement-checkout', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData)
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            // Redirect to first payment page
+            window.location.href = '/bnpl/first-payment/' + data.agreement_id;
+        } else {
+            alert('Error: ' + data.error);
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Place Order';
+        }
+    })
+    .catch(err => {
+        console.error('Error:', err);
+        alert('An error occurred. Please try again.');
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Place Order';
+    });
 }
 
 function processStripePayment() {

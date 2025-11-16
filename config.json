@@ -1,0 +1,21 @@
+{
+  "stripe": {
+    "public_key": "pk_test_YOUR_STRIPE_PUBLIC_KEY",
+    "secret_key": "sk_test_YOUR_STRIPE_SECRET_KEY"
+  },
+  "paynow": {
+    "integration_id": "YOUR_PAYNOW_INTEGRATION_ID",
+    "integration_key": "YOUR_PAYNOW_INTEGRATION_KEY",
+    "return_url": "http://localhost:5001/bnpl/payment-return",
+    "result_url": "http://localhost:5001/bnpl/payment-webhook"
+  },
+  "africastalking": {
+    "username": "sandbox",
+    "api_key": "YOUR_AFRICAS_TALKING_API_KEY",
+    "sender_id": "ZimClass"
+  },
+  "app": {
+    "secret_key": "your-secret-key-change-in-production",
+    "debug": true
+  }
+}

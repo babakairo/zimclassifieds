@@ -3,12 +3,15 @@ Sellers Blueprint - E-Commerce Marketplace Seller Management
 Handles seller registration, store management, product management, and order fulfillment.
 """
 
-from flask import Blueprint, render_template, request, session, redirect, url_for, jsonify
+from flask import Blueprint, render_template, request, session, redirect, url_for, jsonify, current_app
 from werkzeug.security import generate_password_hash, check_password_hash
+from werkzeug.utils import secure_filename
 from functools import wraps
+from pathlib import Path
 import sqlite3
 import uuid
 import re
+import os
 
 sellers_bp = Blueprint('sellers', __name__, url_prefix='/sellers')
 
@@ -36,6 +39,31 @@ def slugify(text):
     text = re.sub(r'[^\w\s-]', '', text)
     text = re.sub(r'[\s_]+', '-', text)
     return text
+
+
+def allowed_file(filename):
+    """Check if file extension is allowed."""
+    ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+
+def save_uploaded_file(file):
+    """Save uploaded file and return relative path."""
+    if not file or file.filename == '':
+        return None
+    
+    if not allowed_file(file.filename):
+        return None
+    
+    ext = file.filename.rsplit('.', 1)[1].lower()
+    filename = f"{uuid.uuid4()}.{ext}"
+    
+    upload_folder = 'static/uploads'
+    os.makedirs(upload_folder, exist_ok=True)
+    
+    filepath = os.path.join(upload_folder, filename)
+    file.save(filepath)
+    return f"uploads/{filename}"
 
 
 @sellers_bp.route('/register', methods=['GET', 'POST'])
@@ -76,9 +104,9 @@ def register():
             # Create user account
             user_id = str(uuid.uuid4())
             db.execute('''
-                INSERT INTO users (user_id, email, password_hash, full_name, phone, account_type)
-                VALUES (?, ?, ?, ?, ?, ?)
-            ''', (user_id, email, generate_password_hash(password), full_name, phone, 'seller'))
+                INSERT INTO users (user_id, email, password_hash, full_name, phone)
+                VALUES (?, ?, ?, ?, ?)
+            ''', (user_id, email, generate_password_hash(password), full_name, phone))
             
             # Create seller profile
             seller_id = str(uuid.uuid4())
@@ -211,25 +239,46 @@ def new_product():
         elif stock_quantity < 0:
             error = 'Stock cannot be negative.'
         
+        # Check if SKU already exists (if provided)
+        if sku:
+            existing_sku = db.execute('SELECT id FROM products WHERE sku = ?', (sku,)).fetchone()
+            if existing_sku:
+                error = f'SKU "{sku}" is already in use. Please use a different SKU or leave it blank.'
+        
         if error:
             db.close()
             return render_template('sellers/product_form.html', error=error)
         
-        # Create product
+        # Create product (SKU can be NULL if not provided)
         product_id = str(uuid.uuid4())
         
         db.execute('''
             INSERT INTO products
             (product_id, seller_id, name, description, category, subcategory, price, sku, stock_quantity)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-        ''', (product_id, seller_internal_id, name, description, category, subcategory, price, sku, stock_quantity))
+        ''', (product_id, seller_internal_id, name, description, category, subcategory, price, sku if sku else None, stock_quantity))
+        
+        # Get the inserted product's internal ID
+        product_internal_id = db.execute('SELECT id FROM products WHERE product_id = ?', (product_id,)).fetchone()['id']
+        
+        # Handle image uploads (max 10 images)
+        uploaded_files = request.files.getlist('images')
+        if uploaded_files:
+            for idx, file in enumerate(uploaded_files[:10]):  # Limit to 10 images
+                if file and file.filename and allowed_file(file.filename):
+                    image_path = save_uploaded_file(file)
+                    if image_path:
+                        db.execute('''
+                            INSERT INTO product_images (product_id, image_path, display_order, is_primary)
+                            VALUES (?, ?, ?, ?)
+                        ''', (product_internal_id, image_path, idx, 1 if idx == 0 else 0))
         
         # Create inventory record
         inventory_id = str(uuid.uuid4())
         db.execute('''
             INSERT INTO inventory (inventory_id, product_id, quantity_available)
-            VALUES (?, (SELECT id FROM products WHERE product_id = ?), ?)
-        ''', (inventory_id, product_id, stock_quantity))
+            VALUES (?, ?, ?)
+        ''', (inventory_id, product_internal_id, stock_quantity))
         
         db.commit()
         db.close()
@@ -256,6 +305,13 @@ def edit_product(product_id):
         db.close()
         return 'Product not found', 404
     
+    # Get existing images
+    product_images = db.execute('''
+        SELECT * FROM product_images 
+        WHERE product_id = ? 
+        ORDER BY is_primary DESC, display_order ASC
+    ''', (product['id'],)).fetchall()
+    
     if request.method == 'POST':
         name = request.form.get('name')
         description = request.form.get('description')
@@ -280,17 +336,38 @@ def edit_product(product_id):
                 WHERE product_id = (SELECT id FROM products WHERE product_id = ?)
             ''', (stock_quantity, product_id))
             
+            # Handle new image uploads
+            uploaded_files = request.files.getlist('images')
+            if uploaded_files:
+                # Get current image count
+                current_count = len(product_images)
+                max_images = 10
+                
+                for idx, file in enumerate(uploaded_files):
+                    if current_count + idx >= max_images:
+                        break
+                    
+                    if file and file.filename and allowed_file(file.filename):
+                        image_path = save_uploaded_file(file)
+                        if image_path:
+                            # If no images exist, make this the primary
+                            is_primary = 1 if current_count == 0 and idx == 0 else 0
+                            db.execute('''
+                                INSERT INTO product_images (product_id, image_path, display_order, is_primary)
+                                VALUES (?, ?, ?, ?)
+                            ''', (product['id'], image_path, current_count + idx, is_primary))
+            
             db.commit()
             db.close()
             
             return redirect(url_for('sellers.products'))
         
         db.close()
-        return render_template('sellers/product_form.html', product=product, error=error)
+        return render_template('sellers/product_form.html', product=product, product_images=product_images, error=error)
     
     db.close()
     
-    return render_template('sellers/product_form.html', product=product)
+    return render_template('sellers/product_form.html', product=product, product_images=product_images)
 
 
 @sellers_bp.route('/product/<product_id>/delete', methods=['POST'])
@@ -315,6 +392,88 @@ def delete_product(product_id):
     db.close()
     
     return jsonify({'success': True, 'message': 'Product deleted'})
+
+
+@sellers_bp.route('/product/<product_id>/image/<int:image_id>/delete', methods=['POST'])
+@seller_required
+def delete_product_image(product_id, image_id):
+    """Delete a product image."""
+    db = get_db()
+    seller_id = session['seller_id']
+    
+    # Verify ownership
+    seller_data = db.execute('SELECT id FROM sellers WHERE seller_id = ?', (seller_id,)).fetchone()
+    product = db.execute('SELECT * FROM products WHERE product_id = ? AND seller_id = ?', 
+                        (product_id, seller_data['id'])).fetchone()
+    
+    if not product:
+        db.close()
+        return jsonify({'success': False, 'error': 'Product not found'}), 404
+    
+    # Get image
+    image = db.execute('SELECT * FROM product_images WHERE id = ? AND product_id = ?', 
+                      (image_id, product['id'])).fetchone()
+    
+    if not image:
+        db.close()
+        return jsonify({'success': False, 'error': 'Image not found'}), 404
+    
+    # Delete file
+    try:
+        filepath = os.path.join('static', image['image_path'])
+        if os.path.exists(filepath):
+            os.remove(filepath)
+    except Exception as e:
+        print(f"Error deleting file: {e}")
+    
+    # Delete from database
+    db.execute('DELETE FROM product_images WHERE id = ?', (image_id,))
+    
+    # If this was primary, make another image primary
+    if image['is_primary']:
+        next_image = db.execute('''
+            SELECT id FROM product_images 
+            WHERE product_id = ? 
+            ORDER BY display_order ASC 
+            LIMIT 1
+        ''', (product['id'],)).fetchone()
+        
+        if next_image:
+            db.execute('UPDATE product_images SET is_primary = 1 WHERE id = ?', (next_image['id'],))
+    
+    db.commit()
+    db.close()
+    
+    return jsonify({'success': True})
+
+
+@sellers_bp.route('/product/<product_id>/image/<int:image_id>/set-primary', methods=['POST'])
+@seller_required
+def set_primary_image(product_id, image_id):
+    """Set an image as primary."""
+    db = get_db()
+    seller_id = session['seller_id']
+    
+    # Verify ownership
+    seller_data = db.execute('SELECT id FROM sellers WHERE seller_id = ?', (seller_id,)).fetchone()
+    product = db.execute('SELECT * FROM products WHERE product_id = ? AND seller_id = ?', 
+                        (product_id, seller_data['id'])).fetchone()
+    
+    if not product:
+        db.close()
+        return jsonify({'success': False, 'error': 'Product not found'}), 404
+    
+    # Unset all primary flags for this product
+    db.execute('UPDATE product_images SET is_primary = 0 WHERE product_id = ?', (product['id'],))
+    
+    # Set new primary
+    db.execute('UPDATE product_images SET is_primary = 1 WHERE id = ? AND product_id = ?', 
+              (image_id, product['id']))
+    
+    db.commit()
+    db.close()
+    
+    return jsonify({'success': True})
 
 
 @sellers_bp.route('/orders')
@@ -442,7 +601,7 @@ def view_store(store_slug):
     # Get seller's products
     products = db.execute('''
         SELECT * FROM products WHERE seller_id = ? AND status = 'active'
-        ORDER BY bumped_at DESC
+        ORDER BY created_at DESC
     ''', (seller['id'],)).fetchall()
     
     # Get seller's ratings

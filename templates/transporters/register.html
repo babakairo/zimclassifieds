@@ -1,0 +1,264 @@
+{% extends "base.html" %}
+
+{% block title %}Become a Transporter - ZimClassifieds{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="text-center mb-5">
+                <h1 class="display-5 mb-3">🚚 Become a Transporter</h1>
+                <p class="lead text-muted">Join our delivery network and earn money on your schedule</p>
+            </div>
+
+            {% if error %}
+            <div class="alert alert-danger alert-dismissible fade show">
+                {{ error }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+            {% endif %}
+
+            <form method="POST" class="needs-validation" novalidate>
+                <div class="card border-0 shadow-sm mb-4">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0">👤 Personal Information</h5>
+                    </div>
+                    <div class="card-body p-4">
+                        <div class="mb-3">
+                            <label for="full_name" class="form-label">Full Name *</label>
+                            <input type="text" class="form-control" id="full_name" name="full_name" required>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="email" class="form-label">Email Address *</label>
+                                <input type="email" class="form-control" id="email" name="email" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="phone" class="form-label">Phone Number *</label>
+                                <input type="tel" class="form-control" id="phone" name="phone" required>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="password" class="form-label">Password *</label>
+                                <input type="password" class="form-control" id="password" name="password" required minlength="6">
+                                <small class="text-muted">At least 6 characters</small>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="confirm_password" class="form-label">Confirm Password *</label>
+                                <input type="password" class="form-control" id="confirm_password" name="confirm_password" required>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card border-0 shadow-sm mb-4">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0">🚗 Vehicle Information</h5>
+                    </div>
+                    <div class="card-body p-4">
+                        <div class="mb-3">
+                            <label for="transport_type" class="form-label">Transport Type *</label>
+                            <select class="form-select" id="transport_type" name="transport_type" required>
+                                <option value="">Select vehicle type</option>
+                                <option value="motorcycle">🏍️ Motorcycle</option>
+                                <option value="car">🚗 Car</option>
+                                <option value="van">🚐 Van</option>
+                                <option value="truck">🚚 Truck</option>
+                            </select>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="vehicle_registration" class="form-label">Vehicle Registration</label>
+                                <input type="text" class="form-control" id="vehicle_registration" name="vehicle_registration" placeholder="e.g., ABC-1234">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="vehicle_make_model" class="form-label">Make & Model</label>
+                                <input type="text" class="form-control" id="vehicle_make_model" name="vehicle_make_model" placeholder="e.g., Toyota Hiace">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card border-0 shadow-sm mb-4">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0">📍 Service Coverage</h5>
+                    </div>
+                    <div class="card-body p-4">
+                        <div class="mb-3">
+                            <label for="service_type" class="form-label">Service Type *</label>
+                            <select class="form-select" id="service_type" name="service_type" required>
+                                <option value="">Select service type</option>
+                                <option value="local">Local (Same-city deliveries only)</option>
+                                <option value="regional">Regional (Cross-city deliveries only)</option>
+                                <option value="both">Both (Local and Regional)</option>
+                            </select>
+                            <small class="text-muted">
+                                Local: Next-day deliveries within your city<br>
+                                Regional: 2-3 day deliveries between cities via warehouses
+                            </small>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="primary_city" class="form-label">Primary City *</label>
+                            <select class="form-select" id="primary_city" name="primary_city" required>
+                                <option value="">Select your primary city</option>
+                                {% for city in cities.keys() %}
+                                <option value="{{ city }}">{{ city }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Coverage Areas (Select multiple)</label>
+                            <div class="row">
+                                {% for city, suburbs in cities.items() %}
+                                <div class="col-md-6 mb-2">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="coverage_areas" value="{{ city }}" id="area_{{ city }}">
+                                        <label class="form-check-label" for="area_{{ city }}">
+                                            {{ city }}
+                                        </label>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card border-0 shadow-sm mb-4">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0">📄 Identification Documents</h5>
+                    </div>
+                    <div class="card-body p-4">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="id_number" class="form-label">National ID Number</label>
+                                <input type="text" class="form-control" id="id_number" name="id_number" placeholder="e.g., 12-345678-A-12">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="drivers_license" class="form-label">Driver's License Number</label>
+                                <input type="text" class="form-control" id="drivers_license" name="drivers_license">
+                            </div>
+                        </div>
+                        
+                        <div class="alert alert-warning mb-3">
+                            <strong>🔒 Background Check Required</strong>
+                            <p class="mb-0 small">All drivers must provide a valid police clearance certificate for safety and security verification.</p>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="police_clearance" class="form-label">Police Clearance Certificate Number *</label>
+                            <input type="text" class="form-control" id="police_clearance" name="police_clearance" required placeholder="Enter certificate number">
+                            <small class="text-muted">Your police clearance certificate number from Zimbabwe Republic Police</small>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="clearance_issue_date" class="form-label">Issue Date</label>
+                                <input type="date" class="form-control" id="clearance_issue_date" name="clearance_issue_date">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="clearance_expiry_date" class="form-label">Expiry Date</label>
+                                <input type="date" class="form-control" id="clearance_expiry_date" name="clearance_expiry_date">
+                            </div>
+                        </div>
+                        
+                        <div class="alert alert-info mb-0">
+                            <small>
+                                📌 <strong>Note:</strong> Your account will be verified within 24 hours. 
+                                We will verify your police clearance certificate with the relevant authorities. 
+                                You may be contacted for additional documentation.
+                            </small>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="d-grid gap-2 mb-4">
+                    <button type="submit" class="btn btn-primary btn-lg">
+                        📝 Register as Transporter
+                    </button>
+                    <a href="{{ url_for('transporters.login') }}" class="btn btn-outline-secondary">
+                        Already have an account? Login
+                    </a>
+                </div>
+            </form>
+
+            <!-- Benefits Section -->
+            <div class="card border-0 bg-light mt-5">
+                <div class="card-body p-4">
+                    <h5 class="mb-3">Why Join Our Network?</h5>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <div class="d-flex">
+                                <span class="me-2">💰</span>
+                                <div>
+                                    <strong>Earn on Your Schedule</strong>
+                                    <p class="text-muted small mb-0">Choose your own hours and accept jobs that fit your route</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <div class="d-flex">
+                                <span class="me-2">📱</span>
+                                <div>
+                                    <strong>Easy-to-Use Platform</strong>
+                                    <p class="text-muted small mb-0">Simple dashboard to manage deliveries and track earnings</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <div class="d-flex">
+                                <span class="me-2">🎯</span>
+                                <div>
+                                    <strong>Reliable Income</strong>
+                                    <p class="text-muted small mb-0">Consistent delivery opportunities in your area</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <div class="d-flex">
+                                <span class="me-2">🤝</span>
+                                <div>
+                                    <strong>24/7 Support</strong>
+                                    <p class="text-muted small mb-0">We're here to help whenever you need us</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Auto-check primary city in coverage areas
+document.getElementById('primary_city').addEventListener('change', function() {
+    const city = this.value;
+    const checkbox = document.getElementById('area_' + city);
+    if (checkbox && !checkbox.checked) {
+        checkbox.checked = true;
+    }
+});
+
+// Form validation
+(function() {
+    'use strict';
+    const forms = document.querySelectorAll('.needs-validation');
+    Array.from(forms).forEach(form => {
+        form.addEventListener('submit', event => {
+            if (!form.checkValidity()) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+            form.classList.add('was-validated');
+        }, false);
+    });
+})();
+</script>
+{% endblock %}

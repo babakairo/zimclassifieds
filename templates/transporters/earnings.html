@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+
+{% block title %}Earnings - Transporter{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <h1 class="h3 mb-4">💰 Earnings & Payment History</h1>
+
+    <!-- Earnings Summary -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body text-center">
+                    <h2 class="text-success mb-0">ZWL {{ "%.2f"|format(summary.total_earned or 0) }}</h2>
+                    <small class="text-muted">Total Earned</small>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body text-center">
+                    <h2 class="mb-0">ZWL {{ "%.2f"|format(summary.today_earnings or 0) }}</h2>
+                    <small class="text-muted">Today</small>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body text-center">
+                    <h2 class="mb-0">ZWL {{ "%.2f"|format(summary.week_earnings or 0) }}</h2>
+                    <small class="text-muted">This Week</small>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body text-center">
+                    <h2 class="mb-0">ZWL {{ "%.2f"|format(summary.month_earnings or 0) }}</h2>
+                    <small class="text-muted">This Month</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delivery Stats -->
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body">
+            <div class="row text-center">
+                <div class="col-md-6">
+                    <h3 class="mb-0">{{ summary.completed_deliveries or 0 }}</h3>
+                    <small class="text-muted">Completed Deliveries</small>
+                </div>
+                <div class="col-md-6">
+                    <h3 class="mb-0">ZWL {{ "%.2f"|format((summary.total_earned or 0) / (summary.completed_deliveries or 1)) }}</h3>
+                    <small class="text-muted">Avg. per Delivery</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Payment History -->
+    <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white">
+            <h5 class="mb-0">Payment History</h5>
+        </div>
+        {% if deliveries %}
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Order ID</th>
+                        <th>Type</th>
+                        <th>Route</th>
+                        <th>Amount</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for delivery in deliveries %}
+                    <tr>
+                        <td>{{ delivery.delivered_at[:10] }}</td>
+                        <td><code>#{{ delivery.order_id[:8] }}</code></td>
+                        <td>
+                            {% if delivery.delivery_type == 'local' %}
+                            <span class="badge bg-success">Local</span>
+                            {% else %}
+                            <span class="badge bg-primary">Regional</span>
+                            {% endif %}
+                        </td>
+                        <td><small>{{ delivery.pickup_city }} → {{ delivery.delivery_city }}</small></td>
+                        <td><strong class="text-success">+ZWL {{ "%.2f"|format(delivery.delivery_fee) }}</strong></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="card-body text-center py-5">
+            <span class="display-1">💸</span>
+            <p class="text-muted mt-3">No earnings yet</p>
+            <p class="text-muted">Complete deliveries to start earning</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

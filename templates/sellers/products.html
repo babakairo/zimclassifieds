@@ -61,7 +61,7 @@
                                 {{ product.status|capitalize }}
                             </span>
                         </td>
-                        <td>{{ product.created_at.strftime('%Y-%m-%d') }}</td>
+                        <td>{{ product.created_at[:10] if product.created_at else 'N/A' }}</td>
                         <td>
                             <div class="btn-group btn-group-sm">
                                 <a href="{{ url_for('sellers.edit_product', product_id=product.product_id) }}" class="btn btn-outline-primary" title="Edit">

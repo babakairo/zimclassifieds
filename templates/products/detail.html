@@ -8,18 +8,17 @@
         <!-- Product Images -->
         <div class="col-md-6 mb-4 mb-md-0">
             <div class="card border-0">
-                {% if product.images %}
-                    {% set images = product.images.split(',') %}
+                {% if product_images %}
                     <div id="productImage" class="card-img-top bg-light d-flex align-items-center justify-content-center" style="height: 400px;">
-                        <img id="mainImage" src="/static/{{ images[0] }}" alt="{{ product.name }}" style="max-height: 100%; max-width: 100%; object-fit: contain;">
+                        <img id="mainImage" src="/static/{{ product_images[0].image_path }}" alt="{{ product.name }}" style="max-height: 100%; max-width: 100%; object-fit: contain;">
                     </div>
-                    {% if images|length > 1 %}
+                    {% if product_images|length > 1 %}
                     <div class="card-body p-2">
                         <div class="row g-2">
-                            {% for image in images %}
+                            {% for image in product_images %}
                             <div class="col-3">
-                                <img src="/static/{{ image }}" alt="Thumbnail" class="img-thumbnail cursor-pointer" 
-                                     onclick="document.getElementById('mainImage').src='/static/{{ image }}'" 
+                                <img src="/static/{{ image.image_path }}" alt="Thumbnail" class="img-thumbnail cursor-pointer" 
+                                     onclick="document.getElementById('mainImage').src='/static/{{ image.image_path }}'" 
                                      style="cursor: pointer;">
                             </div>
                             {% endfor %}
@@ -42,13 +41,13 @@
             <div class="d-flex align-items-center mb-3 pb-3 border-bottom">
                 <div>
                     <p class="mb-1 text-muted small">Sold by</p>
-                    <a href="{{ url_for('sellers.view_store', store_slug=product.store_name|lower|replace(' ', '-')) }}" class="h6 text-decoration-none">
+                    <a href="{{ url_for('sellers.view_store', store_slug=product.store_slug) }}" class="h6 text-decoration-none">
                         {{ product.store_name }}
                     </a>
                 </div>
-                {% if seller_rating > 0 %}
+                {% if product.seller_rating and product.seller_rating > 0 %}
                 <div class="ms-auto text-end">
-                    <span class="text-warning">★ {{ "%.1f"|format(seller_rating) }}</span>
+                    <span class="text-warning">★ {{ "%.1f"|format(product.seller_rating) }}</span>
                     <p class="text-muted small mb-0">Store Rating</p>
                 </div>
                 {% endif %}

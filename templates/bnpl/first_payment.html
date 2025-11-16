@@ -1,0 +1,252 @@
+{% extends "base.html" %}
+
+{% block title %}First Payment - BNPL - ZimClassifieds{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-6">
+            <div class="text-center mb-4">
+                <div style="font-size: 60px; margin-bottom: 1rem;">💳</div>
+                <h1 class="h3">Complete Your First Payment</h1>
+                <p class="text-muted">Pay the first installment to activate your BNPL agreement</p>
+            </div>
+            
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header text-white" 
+                     style="background: linear-gradient(135deg, #10b981 0%, #059669 100%);">
+                    <h5 class="mb-0">💝 Payment Details</h5>
+                </div>
+                <div class="card-body">
+                    <dl class="row mb-0">
+                        <dt class="col-6">First Payment:</dt>
+                        <dd class="col-6 text-end">
+                            <strong class="h5 text-primary">ZWL {{ "%.2f"|format(agreement.installment_amount) }}</strong>
+                        </dd>
+                        
+                        <dt class="col-6">Total Installments:</dt>
+                        <dd class="col-6 text-end">{{ agreement.installments }} payments</dd>
+                        
+                        <dt class="col-6">Payment Frequency:</dt>
+                        <dd class="col-6 text-end">Weekly</dd>
+                        
+                        <dt class="col-6">Total Amount:</dt>
+                        <dd class="col-6 text-end">ZWL {{ "%.2f"|format(agreement.total_amount) }}</dd>
+                    </dl>
+                </div>
+            </div>
+            
+            {% if paynow_available %}
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-white border-bottom">
+                    <h5 class="mb-0">Select Payment Method</h5>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted mb-3">Choose your mobile money provider:</p>
+                    
+                    <div class="d-grid gap-2">
+                        <button class="btn btn-lg btn-success d-flex align-items-center justify-content-center" 
+                                onclick="payWithMobile('ecocash')"
+                                id="btnEcocash">
+                            <span style="font-size: 1.5rem; margin-right: 10px;">📱</span>
+                            <span>Pay with EcoCash</span>
+                        </button>
+                        
+                        <button class="btn btn-lg btn-outline-success d-flex align-items-center justify-content-center" 
+                                onclick="payWithMobile('onemoney')"
+                                id="btnOnemoney">
+                            <span style="font-size: 1.5rem; margin-right: 10px;">📱</span>
+                            <span>Pay with OneMoney</span>
+                        </button>
+                        
+                        <button class="btn btn-lg btn-outline-success d-flex align-items-center justify-content-center" 
+                                onclick="payWithMobile('telecash')"
+                                id="btnTelecash">
+                            <span style="font-size: 1.5rem; margin-right: 10px;">📱</span>
+                            <span>Pay with Telecash</span>
+                        </button>
+                    </div>
+                    
+                    <div id="paymentStatus" class="mt-4" style="display: none;">
+                        <div class="alert alert-info">
+                            <div class="d-flex align-items-center">
+                                <div class="spinner-border spinner-border-sm me-3" role="status"></div>
+                                <div>
+                                    <strong>Payment request sent!</strong><br>
+                                    <small>Check your phone and enter your PIN to approve (dial *151# for EcoCash)</small>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="progress mb-2" style="height: 4px;">
+                            <div class="progress-bar progress-bar-striped progress-bar-animated" 
+                                 role="progressbar" style="width: 100%"></div>
+                        </div>
+                        <small class="text-muted">Waiting for payment confirmation...</small>
+                    </div>
+                    
+                    <div id="paymentSuccess" class="mt-4" style="display: none;">
+                        <div class="alert alert-success">
+                            <div class="text-center">
+                                <div style="font-size: 48px;">✅</div>
+                                <strong>Payment Successful!</strong><br>
+                                <small>Your order has been activated. Redirecting...</small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div id="paymentError" class="mt-4" style="display: none;">
+                        <div class="alert alert-danger">
+                            <strong>❌ Payment Failed</strong><br>
+                            <small id="errorMessage">Please try again or choose a different payment method.</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% else %}
+            <div class="alert alert-warning">
+                <strong>⚠️ Payment system is currently unavailable</strong><br>
+                Please try again later or contact support at support@zimclassifieds.com
+            </div>
+            {% endif %}
+            
+            <div class="alert alert-light">
+                <small>
+                    <strong>📋 What happens next:</strong>
+                    <ol class="mb-0 mt-2">
+                        <li>You'll receive a payment prompt on your phone</li>
+                        <li>Dial *151# (EcoCash) or your mobile money code</li>
+                        <li>Enter your PIN to approve the payment</li>
+                        <li>Once confirmed, your order will be processed immediately</li>
+                        <li>Seller will receive notification to ship your items</li>
+                        <li>We'll send SMS reminders for future payments</li>
+                    </ol>
+                </small>
+            </div>
+            
+            <div class="text-center mt-4">
+                <a href="/bnpl/my-agreements" class="btn btn-outline-secondary">
+                    View My Agreements
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let pollInterval = null;
+let pollUrl = null;
+
+function payWithMobile(method) {
+    const statusDiv = document.getElementById('paymentStatus');
+    const successDiv = document.getElementById('paymentSuccess');
+    const errorDiv = document.getElementById('paymentError');
+    
+    // Disable all buttons
+    document.getElementById('btnEcocash').disabled = true;
+    document.getElementById('btnOnemoney').disabled = true;
+    document.getElementById('btnTelecash').disabled = true;
+    
+    // Show loading
+    statusDiv.style.display = 'block';
+    successDiv.style.display = 'none';
+    errorDiv.style.display = 'none';
+    
+    fetch('/bnpl/process-first-payment', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            agreement_id: '{{ agreement.agreement_id }}',
+            payment_method: method
+        })
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            pollUrl = data.poll_url;
+            // Start polling for payment status
+            startPolling();
+        } else {
+            showError(data.error || 'Payment request failed');
+        }
+    })
+    .catch(err => {
+        console.error('Error:', err);
+        showError('An error occurred. Please try again.');
+    });
+}
+
+function startPolling() {
+    let attempts = 0;
+    const maxAttempts = 60; // Poll for 5 minutes (60 * 5 seconds)
+    
+    pollInterval = setInterval(() => {
+        attempts++;
+        
+        if (attempts > maxAttempts) {
+            clearInterval(pollInterval);
+            showError('Payment timeout. Please try again.');
+            return;
+        }
+        
+        fetch('/bnpl/check-payment-status', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                poll_url: pollUrl
+            })
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                if (data.paid) {
+                    // Payment successful!
+                    clearInterval(pollInterval);
+                    showSuccess();
+                } else if (data.status === 'Failed' || data.status === 'Cancelled') {
+                    clearInterval(pollInterval);
+                    showError('Payment was cancelled or failed');
+                }
+                // Otherwise keep polling
+            }
+        })
+        .catch(err => {
+            console.error('Poll error:', err);
+        });
+        
+    }, 5000); // Poll every 5 seconds
+}
+
+function showSuccess() {
+    document.getElementById('paymentStatus').style.display = 'none';
+    document.getElementById('paymentSuccess').style.display = 'block';
+    
+    // Redirect after 3 seconds
+    setTimeout(() => {
+        window.location.href = '/bnpl/my-agreements?success=First payment completed!';
+    }, 3000);
+}
+
+function showError(message) {
+    document.getElementById('paymentStatus').style.display = 'none';
+    document.getElementById('paymentError').style.display = 'block';
+    document.getElementById('errorMessage').textContent = message;
+    
+    // Re-enable buttons
+    document.getElementById('btnEcocash').disabled = false;
+    document.getElementById('btnOnemoney').disabled = false;
+    document.getElementById('btnTelecash').disabled = false;
+}
+
+// Cleanup on page unload
+window.addEventListener('beforeunload', () => {
+    if (pollInterval) {
+        clearInterval(pollInterval);
+    }
+});
+</script>
+{% endblock %}

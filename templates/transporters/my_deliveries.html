@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+
+{% block title %}My Deliveries - Transporter{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col">
+            <h1 class="h3">📦 My Deliveries</h1>
+        </div>
+        <div class="col-auto">
+            <select class="form-select" onchange="window.location.href='?status='+this.value">
+                <option value="all" {% if current_status == 'all' %}selected{% endif %}>All Status</option>
+                <option value="assigned" {% if current_status == 'assigned' %}selected{% endif %}>Assigned</option>
+                <option value="picked_up" {% if current_status == 'picked_up' %}selected{% endif %}>Picked Up</option>
+                <option value="in_transit" {% if current_status == 'in_transit' %}selected{% endif %}>In Transit</option>
+                <option value="completed" {% if current_status == 'completed' %}selected{% endif %}>Completed</option>
+            </select>
+        </div>
+    </div>
+
+    {% if deliveries %}
+    <div class="card border-0 shadow-sm">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>Order ID</th>
+                        <th>Customer</th>
+                        <th>Type</th>
+                        <th>Route</th>
+                        <th>Fee</th>
+                        <th>Status</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for delivery in deliveries %}
+                    <tr>
+                        <td><code>#{{ delivery.order_id[:8] }}</code></td>
+                        <td>
+                            {{ delivery.customer_name }}<br>
+                            <small class="text-muted">{{ delivery.customer_phone }}</small>
+                        </td>
+                        <td>
+                            {% if delivery.delivery_type == 'local' %}
+                            <span class="badge bg-success">Local</span>
+                            {% else %}
+                            <span class="badge bg-primary">Regional</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <small>
+                                {{ delivery.pickup_city }}<br>
+                                → {{ delivery.delivery_city }}
+                            </small>
+                        </td>
+                        <td><strong>ZWL {{ "%.2f"|format(delivery.delivery_fee) }}</strong></td>
+                        <td>
+                            {% if delivery.status == 'completed' %}
+                            <span class="badge bg-success">✓ Completed</span>
+                            {% elif delivery.status == 'in_transit' %}
+                            <span class="badge bg-warning">🚗 In Transit</span>
+                            {% elif delivery.status == 'picked_up' %}
+                            <span class="badge bg-info">📦 Picked Up</span>
+                            {% elif delivery.status == 'assigned' %}
+                            <span class="badge bg-primary">Assigned</span>
+                            {% else %}
+                            <span class="badge bg-secondary">{{ delivery.status }}</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <a href="{{ url_for('transporters.delivery_detail', delivery_id=delivery.id) }}" 
+                               class="btn btn-sm btn-primary">Manage</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% else %}
+    <div class="card border-0 shadow-sm text-center py-5">
+        <div class="card-body">
+            <span class="display-1">📭</span>
+            <h5 class="mt-3">No Deliveries Found</h5>
+            <p class="text-muted">Accept jobs to see them here</p>
+            <a href="{{ url_for('transporters.available_jobs') }}" class="btn btn-primary">
+                Browse Available Jobs
+            </a>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

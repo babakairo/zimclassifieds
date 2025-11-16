@@ -118,7 +118,7 @@
                     {% for product in top_products %}
                     <tr>
                         <td>
-                            <a href="{{ url_for('seller.edit_product', product_id=product.product_id) }}" class="text-decoration-none">
+                            <a href="{{ url_for('sellers.edit_product', product_id=product.product_id) }}" class="text-decoration-none">
                                 {{ product.name[:50] }}
                             </a>
                         </td>
@@ -134,7 +134,7 @@
                     {% else %}
                     <tr>
                         <td colspan="5" class="text-center py-4 text-muted">
-                            No sales data yet. Start by <a href="{{ url_for('seller.new_product') }}" class="text-decoration-none">creating a product</a>.
+                            No sales data yet. Start by <a href="{{ url_for('sellers.new_product') }}" class="text-decoration-none">creating a product</a>.
                         </td>
                     </tr>
                     {% endfor %}

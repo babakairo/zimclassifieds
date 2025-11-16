@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+
+{% block title %}Payment Processing - ZimClassifieds{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-6">
+            <div class="text-center">
+                <div style="font-size: 80px; margin-bottom: 2rem;">
+                    <div class="spinner-border text-primary" role="status" style="width: 4rem; height: 4rem;">
+                        <span class="visually-hidden">Processing...</span>
+                    </div>
+                </div>
+                
+                <h1 class="h3 mb-3">Processing Your Payment</h1>
+                <p class="text-muted mb-4">
+                    Please wait while we confirm your payment...
+                </p>
+                
+                <div class="card border-0 shadow-sm">
+                    <div class="card-body p-4">
+                        <div class="progress mb-3" style="height: 6px;">
+                            <div class="progress-bar progress-bar-striped progress-bar-animated" 
+                                 role="progressbar" style="width: 100%"></div>
+                        </div>
+                        
+                        <p class="mb-0">
+                            <small class="text-muted">
+                                Reference: <strong>{{ reference }}</strong>
+                            </small>
+                        </p>
+                    </div>
+                </div>
+                
+                <div class="mt-4">
+                    <a href="/bnpl/my-agreements" class="btn btn-primary">
+                        View My BNPL Agreements
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Auto-redirect to agreements page after 5 seconds
+setTimeout(() => {
+    window.location.href = '/bnpl/my-agreements';
+}, 5000);
+</script>
+{% endblock %}
