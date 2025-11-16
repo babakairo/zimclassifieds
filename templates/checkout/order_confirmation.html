@@ -1,0 +1,148 @@
+{% extends "base.html" %}
+
+{% block title %}Order Confirmed - ZimClassifieds{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6 text-center">
+            <!-- Success Icon -->
+            <div class="mb-4">
+                <svg class="mb-3" width="80" height="80" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="40" cy="40" r="40" fill="#d4edda"/>
+                    <path d="M32 42L37 47L51 33" stroke="#28a745" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </div>
+            
+            <h1 class="h3 mb-2">Order Confirmed!</h1>
+            <p class="lead text-muted mb-4">Thank you for your purchase. Your order has been successfully placed.</p>
+            
+            <!-- Order Number -->
+            <div class="card border-0 shadow-sm mb-4 bg-light">
+                <div class="card-body py-3">
+                    <p class="text-muted small mb-1">Your Order Number</p>
+                    <p class="h5 mb-0 font-monospace text-primary">{{ order.order_number }}</p>
+                </div>
+            </div>
+            
+            <!-- What Happens Next -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-white border-bottom">
+                    <h5 class="mb-0">What Happens Next?</h5>
+                </div>
+                <div class="card-body text-start">
+                    <div class="timeline-item d-flex mb-3">
+                        <div class="timeline-marker bg-success text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px; min-width: 40px;">
+                            ✓
+                        </div>
+                        <div class="ms-3">
+                            <h6 class="mb-1">Order Confirmed</h6>
+                            <p class="text-muted small mb-0">{{ order.created_at.strftime('%Y-%m-%d %H:%M') }} - Payment received</p>
+                        </div>
+                    </div>
+                    
+                    <div class="timeline-item d-flex mb-3">
+                        <div class="timeline-marker bg-info text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px; min-width: 40px;">
+                            📦
+                        </div>
+                        <div class="ms-3">
+                            <h6 class="mb-1">Sellers Processing</h6>
+                            <p class="text-muted small mb-0">Your sellers are preparing and packing your items</p>
+                        </div>
+                    </div>
+                    
+                    <div class="timeline-item d-flex mb-3">
+                        <div class="timeline-marker bg-secondary text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px; min-width: 40px;">
+                            🚚
+                        </div>
+                        <div class="ms-3">
+                            <h6 class="mb-1">In Transit</h6>
+                            <p class="text-muted small mb-0">We'll send you tracking info when items ship</p>
+                        </div>
+                    </div>
+                    
+                    <div class="timeline-item d-flex">
+                        <div class="timeline-marker bg-secondary text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px; min-width: 40px;">
+                            📮
+                        </div>
+                        <div class="ms-3">
+                            <h6 class="mb-1">Delivered</h6>
+                            <p class="text-muted small mb-0">Package arrives at your door</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Order Summary -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-white border-bottom">
+                    <h5 class="mb-0">Order Summary</h5>
+                </div>
+                <div class="card-body">
+                    <dl class="row mb-0 small">
+                        <dt class="col-6">Items:</dt>
+                        <dd class="col-6 text-end">{{ order_items|length }} product{{ 's' if order_items|length != 1 else '' }}</dd>
+                        
+                        <dt class="col-6">Subtotal:</dt>
+                        <dd class="col-6 text-end">ZWL {{ "%.2f"|format(order.total_amount - order.shipping_cost) }}</dd>
+                        
+                        <dt class="col-6">Shipping:</dt>
+                        <dd class="col-6 text-end">ZWL {{ "%.2f"|format(order.shipping_cost) }}</dd>
+                    </dl>
+                    <hr class="my-2">
+                    <div class="d-flex justify-content-between">
+                        <strong>Total Paid:</strong>
+                        <strong class="text-primary">ZWL {{ "%.2f"|format(order.total_amount) }}</strong>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Shipping Details -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-white border-bottom">
+                    <h5 class="mb-0">Shipping To</h5>
+                </div>
+                <div class="card-body small">
+                    <p class="mb-1">{{ order.shipping_address }}</p>
+                    <p class="mb-0">{{ order.shipping_suburb }}, {{ order.shipping_city }}</p>
+                </div>
+            </div>
+            
+            <!-- Confirmation Email -->
+            <div class="alert alert-info mb-4" role="alert">
+                <p class="mb-0"><strong>📧 Confirmation Email Sent</strong><br>We've sent an order confirmation email to your registered email address. Check your inbox or spam folder if you don't see it.</p>
+            </div>
+            
+            <!-- Action Buttons -->
+            <div class="d-grid gap-2 d-sm-flex justify-content-center">
+                <a href="{{ url_for('order_detail', order_id=order.order_id) }}" class="btn btn-primary btn-lg">
+                    View Order Details
+                </a>
+                <a href="{{ url_for('browse_products') }}" class="btn btn-outline-primary btn-lg">
+                    Continue Shopping
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.timeline-item {
+    position: relative;
+}
+
+.timeline-item::before {
+    content: '';
+    position: absolute;
+    left: 20px;
+    top: 40px;
+    width: 0px;
+    height: calc(100% - 40px);
+    border-left: 2px dashed #dee2e6;
+}
+
+.timeline-item:last-child::before {
+    display: none;
+}
+</style>
+{% endblock %}

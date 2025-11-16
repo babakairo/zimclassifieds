@@ -1,0 +1,231 @@
+{% extends "base.html" %}
+
+{% block title %}My Orders - Seller Dashboard{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row mb-4 align-items-center">
+        <div class="col">
+            <h1 class="h3">Order Management</h1>
+            <p class="text-muted">Manage and fulfill customer orders</p>
+        </div>
+        <div class="col-auto">
+            <span class="badge bg-info">{{ orders|length }} Total Orders</span>
+        </div>
+    </div>
+    
+    <!-- Order Filters -->
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label">Filter by Status</label>
+                    <select class="form-select form-select-sm" id="statusFilter" onchange="filterSellerOrders()">
+                        <option value="">All Orders</option>
+                        <option value="pending">Pending</option>
+                        <option value="processing">Processing</option>
+                        <option value="shipped">Shipped</option>
+                        <option value="delivered">Delivered</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Sort By</label>
+                    <select class="form-select form-select-sm" id="sortFilter" onchange="sortSellerOrders()">
+                        <option value="newest">Newest First</option>
+                        <option value="oldest">Oldest First</option>
+                        <option value="amount_high">Highest Amount</option>
+                        <option value="amount_low">Lowest Amount</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Search by Order #</label>
+                    <input type="text" class="form-control form-control-sm" id="searchInput" placeholder="Enter order number..." onkeyup="filterSellerOrders()">
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    {% if not orders %}
+    <!-- No Orders -->
+    <div class="card border-0 shadow-sm text-center py-5">
+        <div class="card-body">
+            <svg class="mb-3" width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <rect x="8" y="12" width="48" height="40" rx="2" stroke="#dee2e6" stroke-width="2"/>
+                <path d="M8 20H56M20 28H44" stroke="#dee2e6" stroke-width="2"/>
+            </svg>
+            <h5 class="mb-2">No Orders Yet</h5>
+            <p class="text-muted">You'll see customer orders here once they start placing them</p>
+        </div>
+    </div>
+    {% else %}
+    
+    <!-- Orders Table -->
+    <div class="table-responsive">
+        <table class="table table-hover" id="ordersTable">
+            <thead class="table-light">
+                <tr>
+                    <th>Order #</th>
+                    <th>Customer</th>
+                    <th>Items</th>
+                    <th>Total</th>
+                    <th>Date</th>
+                    <th>Status</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for order in orders %}
+                <tr class="order-row" data-status="{{ order.status }}" data-amount="{{ order.total_amount }}" data-date="{{ order.created_at }}" data-order="{{ order.order_number }}">
+                    <td>
+                        <a href="#" onclick="expandOrder('order-{{ order.order_id }}'); return false;" class="text-decoration-none fw-bold">
+                            #{{ order.order_number }}
+                        </a>
+                    </td>
+                    <td>{{ order.customer_name or 'Guest' }}</td>
+                    <td>
+                        <span class="badge bg-light text-dark">{{ order.item_count or 1 }}</span>
+                    </td>
+                    <td><strong>ZWL {{ "%.2f"|format(order.total_amount) }}</strong></td>
+                    <td>{{ order.created_at.strftime('%Y-%m-%d') }}</td>
+                    <td>
+                        <span class="badge bg-{% if order.status == 'delivered' %}success{% elif order.status == 'shipped' %}info{% elif order.status == 'processing' %}warning{% else %}secondary{% endif %}">
+                            {{ order.status|capitalize }}
+                        </span>
+                    </td>
+                    <td>
+                        <a href="#" onclick="expandOrder('order-{{ order.order_id }}'); return false;" class="btn btn-sm btn-outline-primary">
+                            Manage
+                        </a>
+                    </td>
+                </tr>
+                
+                <!-- Order Details (Hidden) -->
+                <tr id="order-{{ order.order_id }}" class="order-details" style="display: none;">
+                    <td colspan="7">
+                        <div class="card border-0 m-2">
+                            <div class="card-body">
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        <h6>Shipping Address</h6>
+                                        <p class="small mb-0">
+                                            {{ order.shipping_address }}<br>
+                                            {{ order.shipping_suburb }}, {{ order.shipping_city }}
+                                        </p>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <h6>Items</h6>
+                                        <p class="small mb-0">
+                                            Qty: {{ order.item_count or 1 }}<br>
+                                            Total: ZWL {{ "%.2f"|format(order.total_amount) }}
+                                        </p>
+                                    </div>
+                                </div>
+                                
+                                <!-- Fulfillment Form -->
+                                {% if order.status != 'delivered' %}
+                                <form method="POST" action="{{ url_for('seller.fulfill_order', order_id=order.order_id) }}" class="row g-2">
+                                    <div class="col-md-6">
+                                        <label class="form-label">Tracking Number</label>
+                                        <input type="text" name="tracking_number" class="form-control form-control-sm" placeholder="e.g., ZIM123456789" required>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">Courier</label>
+                                        <select name="courier" class="form-select form-select-sm">
+                                            <option value="">Select Courier</option>
+                                            <option value="zimpost">ZimPost</option>
+                                            <option value="fastjets">FastJets</option>
+                                            <option value="cosec">COSEC</option>
+                                            <option value="pickup">Customer Pickup</option>
+                                            <option value="other">Other</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-12">
+                                        <button type="submit" class="btn btn-sm btn-success">
+                                            ✓ Mark as Shipped
+                                        </button>
+                                        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="expandOrder('order-{{ order.order_id }}')">
+                                            Cancel
+                                        </button>
+                                    </div>
+                                </form>
+                                {% else %}
+                                <div class="alert alert-success mb-0">
+                                    <strong>✓ Delivered</strong> - Order successfully delivered to customer
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+function expandOrder(orderId) {
+    const element = document.getElementById(orderId);
+    if (element) {
+        element.style.display = element.style.display === 'none' ? '' : 'none';
+    }
+}
+
+function filterSellerOrders() {
+    const statusFilter = document.getElementById('statusFilter').value.toLowerCase();
+    const searchInput = document.getElementById('searchInput').value.toLowerCase();
+    
+    const rows = document.querySelectorAll('.order-row');
+    rows.forEach(row => {
+        const status = row.dataset.status.toLowerCase();
+        const orderNum = row.dataset.order.toLowerCase();
+        
+        let matchesStatus = !statusFilter || status === statusFilter;
+        let matchesSearch = !searchInput || orderNum.includes(searchInput);
+        
+        row.style.display = matchesStatus && matchesSearch ? '' : 'none';
+        
+        // Hide associated details row if parent hidden
+        if (!matchesStatus || !matchesSearch) {
+            const detailsId = row.nextElementSibling?.id;
+            if (detailsId) {
+                document.getElementById(detailsId).style.display = 'none';
+            }
+        }
+    });
+}
+
+function sortSellerOrders() {
+    const sortBy = document.getElementById('sortFilter').value;
+    const table = document.getElementById('ordersTable');
+    const rows = Array.from(table.querySelectorAll('tbody .order-row'));
+    
+    rows.sort((a, b) => {
+        switch(sortBy) {
+            case 'newest':
+                return new Date(b.dataset.date) - new Date(a.dataset.date);
+            case 'oldest':
+                return new Date(a.dataset.date) - new Date(b.dataset.date);
+            case 'amount_high':
+                return parseFloat(b.dataset.amount) - parseFloat(a.dataset.amount);
+            case 'amount_low':
+                return parseFloat(a.dataset.amount) - parseFloat(b.dataset.amount);
+            default:
+                return 0;
+        }
+    });
+    
+    const tbody = table.querySelector('tbody');
+    rows.forEach(row => {
+        tbody.appendChild(row);
+        // Reattach details row
+        const detailsId = row.id.replace('order-', 'order-');
+        const details = document.getElementById(detailsId);
+        if (details) {
+            tbody.appendChild(details);
+        }
+    });
+}
+</script>
+{% endblock %}

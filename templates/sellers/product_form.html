@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+
+{% block title %}{% if product %}Edit{% else %}Add{% endif %} Product{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <h1 class="h3 mb-4">{% if product %}Edit{% else %}Add New{% endif %} Product</h1>
+            
+            {% if error %}
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                {{ error }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+            {% endif %}
+            
+            <form method="POST" class="needs-validation">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-body p-4">
+                        <!-- Basic Info -->
+                        <h5 class="mb-3">Product Information</h5>
+                        
+                        <div class="mb-3">
+                            <label for="name" class="form-label">Product Name *</label>
+                            <input type="text" class="form-control" id="name" name="name" 
+                                   value="{{ product.name if product else '' }}" required>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="category" class="form-label">Category *</label>
+                                <select class="form-select" id="category" name="category" required>
+                                    <option value="">Select a category</option>
+                                    <option value="electronics" {% if product and product.category == 'electronics' %}selected{% endif %}>Electronics</option>
+                                    <option value="clothing" {% if product and product.category == 'clothing' %}selected{% endif %}>Clothing & Fashion</option>
+                                    <option value="home" {% if product and product.category == 'home' %}selected{% endif %}>Home & Garden</option>
+                                    <option value="books" {% if product and product.category == 'books' %}selected{% endif %}>Books & Media</option>
+                                    <option value="sports" {% if product and product.category == 'sports' %}selected{% endif %}>Sports & Outdoors</option>
+                                    <option value="toys" {% if product and product.category == 'toys' %}selected{% endif %}>Toys & Games</option>
+                                    <option value="other" {% if product and product.category == 'other' %}selected{% endif %}>Other</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="subcategory" class="form-label">Subcategory</label>
+                                <input type="text" class="form-control" id="subcategory" name="subcategory" 
+                                       value="{{ product.subcategory if product else '' }}">
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="description" class="form-label">Description *</label>
+                            <textarea class="form-control" id="description" name="description" rows="4" required>{{ product.description if product else '' }}</textarea>
+                            <small class="text-muted">Include key details, condition, and features</small>
+                        </div>
+                        
+                        <!-- Pricing & Stock -->
+                        <h5 class="mb-3 mt-4">Pricing & Inventory</h5>
+                        
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label for="price" class="form-label">Price (ZWL) *</label>
+                                <input type="number" class="form-control" id="price" name="price" 
+                                       value="{{ product.price if product else '' }}" step="0.01" min="0" required>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label for="sku" class="form-label">SKU</label>
+                                <input type="text" class="form-control" id="sku" name="sku" 
+                                       value="{{ product.sku if product else '' }}" placeholder="Optional">
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label for="stock_quantity" class="form-label">Stock Quantity *</label>
+                                <input type="number" class="form-control" id="stock_quantity" name="stock_quantity" 
+                                       value="{{ product.stock_quantity if product else '0' }}" min="0" required>
+                            </div>
+                        </div>
+                        
+                        {% if product %}
+                        <!-- Status -->
+                        <div class="mb-3">
+                            <label for="status" class="form-label">Status</label>
+                            <select class="form-select" id="status" name="status">
+                                <option value="active" {% if product.status == 'active' %}selected{% endif %}>Active</option>
+                                <option value="inactive" {% if product.status == 'inactive' %}selected{% endif %}>Inactive</option>
+                                <option value="archived" {% if product.status == 'archived' %}selected{% endif %}>Archived</option>
+                            </select>
+                        </div>
+                        {% endif %}
+                        
+                        <!-- Form Actions -->
+                        <div class="d-flex gap-2 mt-4">
+                            <button type="submit" class="btn btn-primary">
+                                {% if product %}Update Product{% else %}Add Product{% endif %}
+                            </button>
+                            <a href="{{ url_for('sellers.products') }}" class="btn btn-outline-secondary">Cancel</a>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

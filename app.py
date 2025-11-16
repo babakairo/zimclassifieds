@@ -19,11 +19,20 @@ import urllib.parse
 import time
 from email.message import EmailMessage
 from itsdangerous import URLSafeTimedSerializer, SignatureExpired, BadSignature
+import stripe
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 
 app = Flask(__name__)
 app.secret_key = 'zim-classifieds-secret-key-change-in-production'
 DATABASE = 'zimclassifieds.db'
+
+# Stripe Configuration
+stripe.api_key = os.environ.get('STRIPE_SECRET_KEY') or 'sk_test_placeholder'
+STRIPE_PUBLIC_KEY = os.environ.get('STRIPE_PUBLIC_KEY') or 'pk_test_placeholder'
 
 # Load optional integrations from env
 RECAPTCHA_SITE_KEY = os.environ.get('RECAPTCHA_SITE_KEY')
@@ -1530,13 +1539,208 @@ def checkout():
                          subtotal=subtotal,
                          shipping=shipping,
                          tax=tax,
-                         total=total)
+                         total=total,
+                         stripe_public_key=STRIPE_PUBLIC_KEY)
+
+
+@app.route('/api/stripe-checkout', methods=['POST'])
+@login_required
+def create_stripe_checkout():
+    """Create Stripe checkout session for Stripe payment."""
+    try:
+        data = request.get_json()
+        user_id = session['user_id']
+        
+        db = get_db()
+        
+        # Get user details
+        user = db.execute('SELECT * FROM users WHERE id = ?', (user_id,)).fetchone()
+        
+        # Get cart items
+        cart_items = db.execute('''
+            SELECT c.*, p.name, p.price, s.store_name FROM cart c
+            JOIN products p ON c.product_id = p.id
+            JOIN sellers s ON c.seller_id = s.id
+            WHERE c.user_id = ?
+        ''', (user_id,)).fetchall()
+        
+        if not cart_items:
+            db.close()
+            return jsonify({'success': False, 'message': 'Cart is empty'}), 400
+        
+        # Build line items for Stripe
+        line_items = []
+        for item in cart_items:
+            line_items.append({
+                'price_data': {
+                    'currency': 'usd',  # Change to ZWL when Stripe supports it
+                    'product_data': {
+                        'name': f"{item['name'][:50]} (from {item['store_name']})",
+                    },
+                    'unit_amount': int(item['price'] * 100),  # Convert to cents
+                },
+                'quantity': item['quantity'],
+            })
+        
+        # Create Stripe checkout session
+        session_obj = stripe.checkout.Session.create(
+            payment_method_types=['card'],
+            line_items=line_items,
+            mode='payment',
+            success_url=request.host_url.rstrip('/') + url_for('stripe_success', _external=False),
+            cancel_url=request.host_url.rstrip('/') + url_for('checkout', _external=False),
+            customer_email=user['email'],
+            metadata={
+                'user_id': user_id,
+                'shipping_address': data.get('shipping_address'),
+                'shipping_city': data.get('shipping_city'),
+                'shipping_suburb': data.get('shipping_suburb'),
+            }
+        )
+        
+        db.close()
+        
+        return jsonify({
+            'success': True,
+            'sessionId': session_obj.id,
+            'publishableKey': STRIPE_PUBLIC_KEY
+        })
+    
+    except stripe.error.CardError as e:
+        return jsonify({'success': False, 'message': f'Card error: {e.user_message}'}), 400
+    except stripe.error.StripeException as e:
+        return jsonify({'success': False, 'message': f'Stripe error: {str(e)}'}), 400
+    except Exception as e:
+        return jsonify({'success': False, 'message': f'Error: {str(e)}'}), 500
+
+
+@app.route('/stripe-success')
+@login_required
+def stripe_success():
+    """Handle successful Stripe payment."""
+    session_id = request.args.get('session_id')
+    
+    if not session_id:
+        return redirect(url_for('checkout'))
+    
+    try:
+        # Retrieve session from Stripe
+        checkout_session = stripe.checkout.Session.retrieve(session_id)
+        
+        if checkout_session.payment_status == 'paid':
+            # Create order from Stripe session
+            user_id = session['user_id']
+            
+            db = get_db()
+            
+            # Get cart items
+            cart_items = db.execute('''
+                SELECT c.*, p.price FROM cart c
+                JOIN products p ON c.product_id = p.id
+                WHERE c.user_id = ?
+            ''', (user_id,)).fetchall()
+            
+            if cart_items:
+                # Calculate totals
+                subtotal = sum(item['price'] * item['quantity'] for item in cart_items)
+                shipping = 0
+                tax = subtotal * 0.10
+                total = subtotal + shipping + tax
+                
+                # Create order
+                order_id = str(uuid.uuid4())
+                order_number = f"ORD-{int(time.time())}"
+                
+                # Get metadata from Stripe session
+                metadata = checkout_session.metadata or {}
+                shipping_address = metadata.get('shipping_address', '')
+                shipping_city = metadata.get('shipping_city', '')
+                shipping_suburb = metadata.get('shipping_suburb', '')
+                
+                db.execute('''
+                    INSERT INTO orders
+                    (order_id, user_id, order_number, total_amount, shipping_address, shipping_city,
+                     shipping_suburb, shipping_cost, payment_method, payment_status)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ''', (order_id, user_id, order_number, total, shipping_address, shipping_city,
+                      shipping_suburb, shipping, 'stripe_card', 'paid'))
+                
+                # Get order internal ID
+                order_data = db.execute('SELECT id FROM orders WHERE order_id = ?', (order_id,)).fetchone()
+                order_internal_id = order_data['id']
+                
+                # Create order items
+                for item in cart_items:
+                    order_item_id = str(uuid.uuid4())
+                    item_subtotal = item['price'] * item['quantity']
+                    
+                    db.execute('''
+                        INSERT INTO order_items
+                        (order_item_id, order_id, product_id, seller_id, quantity, unit_price, subtotal)
+                        VALUES (?, ?, ?, ?, ?, ?, ?)
+                    ''', (order_item_id, order_internal_id, item['product_id'], item['seller_id'],
+                          item['quantity'], item['price'], item_subtotal))
+                    
+                    # Update product stock
+                    db.execute('''
+                        UPDATE products SET stock_quantity = stock_quantity - ? WHERE id = ?
+                    ''', (item['quantity'], item['product_id']))
+                
+                # Create payment transaction
+                transaction_id = checkout_session.payment_intent
+                db.execute('''
+                    INSERT INTO payment_transactions 
+                    (transaction_id, order_id, user_id, amount, payment_method, status)
+                    VALUES (?, ?, ?, ?, ?, ?)
+                ''', (transaction_id, order_internal_id, user_id, total, 'stripe_card', 'completed'))
+                
+                # Clear cart
+                db.execute('DELETE FROM cart WHERE user_id = ?', (user_id,))
+                
+                db.commit()
+                db.close()
+                
+                return redirect(url_for('order_confirmation', order_id=order_id))
+        
+        return redirect(url_for('checkout'))
+    
+    except stripe.error.StripeException as e:
+        return redirect(url_for('checkout'))
+
+
+@app.route('/order-confirmation/<order_id>')
+@login_required
+def order_confirmation(order_id):
+    """Display order confirmation page."""
+    user_id = session['user_id']
+    db = get_db()
+    
+    order = db.execute('''
+        SELECT * FROM orders WHERE order_id = ? AND user_id = ?
+    ''', (order_id, user_id)).fetchone()
+    
+    if not order:
+        db.close()
+        return redirect(url_for('order_history'))
+    
+    order_items = db.execute('''
+        SELECT oi.*, p.name, s.store_name FROM order_items oi
+        JOIN products p ON oi.product_id = p.id
+        JOIN sellers s ON oi.seller_id = s.id
+        WHERE oi.order_id = ?
+    ''', (order['id'],)).fetchall()
+    
+    db.close()
+    
+    return render_template('checkout/order_confirmation.html',
+                          order=order,
+                          order_items=order_items)
 
 
 @app.route('/api/orders', methods=['POST'])
 @login_required
 def create_order():
-    """Create order from cart."""
+    """Create order from cart (for non-Stripe payment methods)."""
     data = request.get_json()
     user_id = session['user_id']
     
@@ -1547,6 +1751,10 @@ def create_order():
     
     if not all([shipping_address, shipping_city, shipping_suburb, payment_method]):
         return jsonify({'success': False, 'message': 'Missing required fields'}), 400
+    
+    # Stripe payments should use /api/stripe-checkout instead
+    if payment_method == 'stripe_card':
+        return jsonify({'success': False, 'message': 'Use Stripe checkout'}), 400
     
     db = get_db()
     
@@ -1578,6 +1786,7 @@ def create_order():
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ''', (order_id, user_id, order_number, total, shipping_address, shipping_city,
           shipping_suburb, shipping, payment_method, 'pending'))
+
     
     # Get order internal ID
     order_data = db.execute('SELECT id FROM orders WHERE order_id = ?', (order_id,)).fetchone()

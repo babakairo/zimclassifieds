@@ -1,0 +1,273 @@
+{% extends "base.html" %}
+
+{% block title %}{{ seller.store_name }} - ZimClassifieds{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <!-- Store Header -->
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h1 class="h3 mb-2">{{ seller.store_name }}</h1>
+                    <p class="text-muted mb-1">
+                        <span class="badge bg-light text-dark">{{ seller.category or 'Multi-Category' }}</span>
+                    </p>
+                    <p class="small text-muted mb-2">{{ seller.description }}</p>
+                    <div class="small">
+                        <span class="me-3">
+                            <strong>★ {{ "%.1f"|format(seller.avg_rating) }}</strong> 
+                            <span class="text-muted">({{ seller.total_reviews }} reviews)</span>
+                        </span>
+                        <span class="me-3">
+                            <strong>{{ seller.total_products }}</strong> 
+                            <span class="text-muted">products</span>
+                        </span>
+                        <span>
+                            <strong>{{ seller.total_sales }}</strong> 
+                            <span class="text-muted">sales</span>
+                        </span>
+                    </div>
+                </div>
+                
+                <div class="col-md-4 text-md-end">
+                    <div class="mb-3">
+                        <p class="text-muted small mb-1">Return Policy</p>
+                        <p class="small mb-0">{{ seller.return_policy or '30-day returns accepted' }}</p>
+                    </div>
+                    <div>
+                        <p class="text-muted small mb-1">Joined</p>
+                        <p class="small mb-0">{{ seller.created_at.strftime('%B %Y') }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Store Metrics -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card border-0 text-center py-3">
+                <div class="card-body">
+                    <p class="h4 text-primary mb-0">{{ "%.1f"|format(seller.avg_rating) }}★</p>
+                    <small class="text-muted">Average Rating</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 text-center py-3">
+                <div class="card-body">
+                    <p class="h4 text-success mb-0">{{ seller.response_time or '2h' }}</p>
+                    <small class="text-muted">Avg Response</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 text-center py-3">
+                <div class="card-body">
+                    <p class="h4 text-info mb-0">{{ seller.shipping_days or '3-5 days' }}</p>
+                    <small class="text-muted">Shipping Time</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 text-center py-3">
+                <div class="card-body">
+                    <p class="h4 text-warning mb-0">{{ seller.total_followers or 0 }}</p>
+                    <small class="text-muted">Followers</small>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Filter and Sort -->
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label small mb-1">Sort By</label>
+                    <select class="form-select form-select-sm" id="sortFilter" onchange="sortStoreProducts()">
+                        <option value="newest">Newest First</option>
+                        <option value="popular">Most Popular</option>
+                        <option value="price_low">Price: Low to High</option>
+                        <option value="price_high">Price: High to Low</option>
+                        <option value="rating">Best Rated</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label small mb-1">Filter by Category</label>
+                    <select class="form-select form-select-sm" id="categoryFilter" onchange="filterStoreProducts()">
+                        <option value="">All Categories</option>
+                        {% for category in categories %}
+                        <option value="{{ category }}">{{ category|capitalize }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label small mb-1">Search Products</label>
+                    <input type="text" class="form-control form-control-sm" id="searchInput" placeholder="Search..." onkeyup="filterStoreProducts()">
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    {% if products %}
+    <!-- Products Grid -->
+    <div class="row" id="productsGrid">
+        {% for product in products %}
+        <div class="col-md-6 col-lg-4 mb-4 product-card" data-category="{{ product.category }}" data-name="{{ product.name|lower }}" data-price="{{ product.price }}" data-rating="{{ product.avg_rating or 0 }}">
+            <div class="card border-0 shadow-sm h-100 product-card-inner">
+                <!-- Product Image -->
+                <div class="position-relative" style="height: 200px; background: #f5f5f5; display: flex; align-items: center; justify-content: center;">
+                    <span class="text-muted">Product Image</span>
+                    {% if product.in_stock %}
+                    <span class="position-absolute top-0 end-0 m-2 badge bg-success">In Stock</span>
+                    {% else %}
+                    <span class="position-absolute top-0 end-0 m-2 badge bg-danger">Out of Stock</span>
+                    {% endif %}
+                </div>
+                
+                <!-- Product Info -->
+                <div class="card-body flex-grow-1">
+                    <p class="text-muted small mb-1">{{ product.category|capitalize }}</p>
+                    <h6 class="card-title" style="max-height: 2.5em; overflow: hidden;">
+                        <a href="{{ url_for('product_detail', product_id=product.product_id) }}" class="text-decoration-none text-dark">
+                            {{ product.name[:50] }}{% if product.name|length > 50 %}...{% endif %}
+                        </a>
+                    </h6>
+                    
+                    <!-- Rating -->
+                    <div class="mb-2">
+                        {% if product.avg_rating %}
+                        <span class="text-warning small">★ {{ "%.1f"|format(product.avg_rating) }}</span>
+                        <span class="text-muted small">({{ product.review_count or 0 }})</span>
+                        {% else %}
+                        <span class="text-muted small">No ratings yet</span>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Price -->
+                    <p class="card-text h5 text-primary mb-3">ZWL {{ "%.2f"|format(product.price) }}</p>
+                </div>
+                
+                <!-- Action -->
+                <div class="card-footer bg-white border-top">
+                    {% if product.in_stock %}
+                    <a href="{{ url_for('product_detail', product_id=product.product_id) }}" class="btn btn-sm btn-primary w-100">
+                        View & Buy
+                    </a>
+                    {% else %}
+                    <button class="btn btn-sm btn-secondary w-100" disabled>Out of Stock</button>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    
+    <!-- Empty Filter -->
+    <div id="noProducts" class="text-center py-5" style="display: none;">
+        <p class="text-muted mb-3">No products match your filters</p>
+        <button class="btn btn-sm btn-outline-primary" onclick="resetStoreFilters()">Clear Filters</button>
+    </div>
+    {% else %}
+    <!-- No Products -->
+    <div class="card border-0 shadow-sm text-center py-5">
+        <div class="card-body">
+            <svg class="mb-3" width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <rect x="8" y="16" width="48" height="40" rx="2" stroke="#dee2e6" stroke-width="2"/>
+                <path d="M28 24H36M24 32H40M28 40H36" stroke="#dee2e6" stroke-width="2"/>
+            </svg>
+            <h5 class="mb-2">No Products Listed</h5>
+            <p class="text-muted">This store doesn't have any products yet. Check back soon!</p>
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- Customer Reviews Section -->
+    <div class="mt-5 pt-4 border-top">
+        <h4 class="mb-4">Seller Reviews</h4>
+        
+        {% if seller_reviews %}
+        <div class="row">
+            {% for review in seller_reviews %}
+            <div class="col-md-6 mb-3">
+                <div class="card border-0 bg-light">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <div>
+                                <p class="fw-bold mb-1">{{ review.reviewer_name }}</p>
+                                <p class="text-warning small mb-0">
+                                    {% for i in range(review.rating) %}★{% endfor %}<span class="text-muted">{% for i in range(5 - review.rating) %}☆{% endfor %}</span>
+                                </p>
+                            </div>
+                            <small class="text-muted">{{ review.created_at.strftime('%b %d, %Y') }}</small>
+                        </div>
+                        <p class="small mb-0">{{ review.comment[:100] }}{% if review.comment|length > 100 %}...{% endif %}</p>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="text-muted text-center py-4">No reviews yet. Be the first to review this seller!</p>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+function filterStoreProducts() {
+    const categoryFilter = document.getElementById('categoryFilter').value.toLowerCase();
+    const searchInput = document.getElementById('searchInput').value.toLowerCase();
+    
+    const products = document.querySelectorAll('.product-card');
+    let visibleCount = 0;
+    
+    products.forEach(card => {
+        const category = card.dataset.category.toLowerCase();
+        const name = card.dataset.name;
+        
+        let matchesCategory = !categoryFilter || category === categoryFilter;
+        let matchesSearch = !searchInput || name.includes(searchInput);
+        
+        if (matchesCategory && matchesSearch) {
+            card.style.display = '';
+            visibleCount++;
+        } else {
+            card.style.display = 'none';
+        }
+    });
+    
+    document.getElementById('productsGrid').style.display = visibleCount > 0 ? '' : 'none';
+    document.getElementById('noProducts').style.display = visibleCount === 0 && products.length > 0 ? '' : 'none';
+}
+
+function sortStoreProducts() {
+    const sortBy = document.getElementById('sortFilter').value;
+    const grid = document.getElementById('productsGrid');
+    const products = Array.from(grid.querySelectorAll('.product-card'));
+    
+    products.sort((a, b) => {
+        switch(sortBy) {
+            case 'price_low':
+                return parseFloat(a.dataset.price) - parseFloat(b.dataset.price);
+            case 'price_high':
+                return parseFloat(b.dataset.price) - parseFloat(a.dataset.price);
+            case 'rating':
+                return parseFloat(b.dataset.rating) - parseFloat(a.dataset.rating);
+            case 'newest':
+            default:
+                return 0;
+        }
+    });
+    
+    products.forEach(product => grid.appendChild(product));
+}
+
+function resetStoreFilters() {
+    document.getElementById('categoryFilter').value = '';
+    document.getElementById('searchInput').value = '';
+    filterStoreProducts();
+}
+</script>
+{% endblock %}

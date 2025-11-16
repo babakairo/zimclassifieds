@@ -6,3 +6,5 @@ click==8.1.7
 itsdangerous==2.1.2
 certifi==2025.11.12
 gunicorn==21.2.0
+stripe==7.0.0
+python-dotenv==1.0.0

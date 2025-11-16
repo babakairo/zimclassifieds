@@ -1,0 +1,150 @@
+{% extends "base.html" %}
+
+{% block title %}Order {{ order.order_number }} - ZimClassifieds{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row mb-4">
+        <div class="col">
+            <h1 class="h3">Order Confirmation</h1>
+            <p class="text-muted">Order #{{ order.order_number }}</p>
+        </div>
+        <div class="col-auto">
+            <span class="badge bg-{% if order.status == 'completed' %}success{% elif order.status == 'shipped' %}info{% else %}warning{% endif %}">
+                {{ order.status|upper }}
+            </span>
+        </div>
+    </div>
+    
+    <!-- Order Info -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <p class="text-muted small mb-1">Order Date</p>
+                    <p class="h6 mb-0">{{ order.created_at.strftime('%Y-%m-%d %H:%M') }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <p class="text-muted small mb-1">Payment Status</p>
+                    <p class="h6 mb-0">
+                        <span class="badge bg-{% if order.payment_status == 'paid' %}success{% else %}warning{% endif %}">
+                            {{ order.payment_status|capitalize }}
+                        </span>
+                    </p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <p class="text-muted small mb-1">Total Amount</p>
+                    <p class="h6 mb-0 text-primary">ZWL {{ "%.2f"|format(order.total_amount) }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <p class="text-muted small mb-1">Delivery To</p>
+                    <p class="h6 mb-0">{{ order.shipping_suburb }}, {{ order.shipping_city }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Order Items -->
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-white border-bottom">
+            <h5 class="mb-0">Items in This Order</h5>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Product</th>
+                            <th>Seller</th>
+                            <th>Qty</th>
+                            <th>Unit Price</th>
+                            <th>Subtotal</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in order_items %}
+                        <tr>
+                            <td>
+                                <a href="{{ url_for('product_detail', product_id=item.product_id) }}" class="text-decoration-none">
+                                    {{ item.name }}
+                                </a>
+                            </td>
+                            <td>{{ item.store_name }}</td>
+                            <td>{{ item.quantity }}</td>
+                            <td>ZWL {{ "%.2f"|format(item.unit_price) }}</td>
+                            <td>ZWL {{ "%.2f"|format(item.subtotal) }}</td>
+                            <td>
+                                <span class="badge bg-{% if item.fulfillment_status == 'delivered' %}success{% elif item.fulfillment_status == 'shipped' %}info{% else %}warning{% endif %}">
+                                    {{ item.fulfillment_status|capitalize }}
+                                </span>
+                                {% if item.tracking_number %}
+                                <br><small class="text-muted">Tracking: {{ item.tracking_number }}</small>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Order Summary -->
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white border-bottom">
+                    <h5 class="mb-0">Shipping Address</h5>
+                </div>
+                <div class="card-body">
+                    <p class="mb-1">{{ order.shipping_address }}</p>
+                    <p class="mb-0">{{ order.shipping_suburb }}, {{ order.shipping_city }}</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white border-bottom">
+                    <h5 class="mb-0">Order Total</h5>
+                </div>
+                <div class="card-body">
+                    <dl class="row mb-0">
+                        <dt class="col-6">Subtotal:</dt>
+                        <dd class="col-6 text-end">ZWL {{ "%.2f"|format(order.total_amount - order.shipping_cost) }}</dd>
+                        
+                        <dt class="col-6">Shipping:</dt>
+                        <dd class="col-6 text-end">ZWL {{ "%.2f"|format(order.shipping_cost) }}</dd>
+                        
+                        <dt class="col-6">Discount:</dt>
+                        <dd class="col-6 text-end">-ZWL {{ "%.2f"|format(order.discount_applied) }}</dd>
+                    </dl>
+                    <hr class="my-2">
+                    <div class="d-flex justify-content-between">
+                        <strong>Total:</strong>
+                        <strong class="h5 text-primary mb-0">ZWL {{ "%.2f"|format(order.total_amount) }}</strong>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="text-center mt-4">
+        <a href="{{ url_for('order_history') }}" class="btn btn-outline-primary">View All Orders</a>
+        <a href="{{ url_for('browse_products') }}" class="btn btn-primary">Continue Shopping</a>
+    </div>
+</div>
+{% endblock %}

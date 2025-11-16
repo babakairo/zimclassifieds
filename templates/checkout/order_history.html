@@ -1,0 +1,168 @@
+{% extends "base.html" %}
+
+{% block title %}My Orders - ZimClassifieds{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row mb-4">
+        <div class="col">
+            <h1 class="h3">My Orders</h1>
+            <p class="text-muted">View and track your purchases</p>
+        </div>
+    </div>
+    
+    {% if not orders %}
+    <!-- Empty State -->
+    <div class="card border-0 shadow-sm text-center py-5">
+        <div class="card-body">
+            <svg class="mb-3" width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="32" cy="32" r="30" stroke="#dee2e6" stroke-width="2"/>
+                <path d="M20 28H44M20 36H44M28 44H36" stroke="#dee2e6" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+            <h5 class="mb-2">No Orders Yet</h5>
+            <p class="text-muted mb-4">You haven't placed any orders yet. Start shopping to see your orders here!</p>
+            <a href="{{ url_for('browse_products') }}" class="btn btn-primary">Browse Products</a>
+        </div>
+    </div>
+    {% else %}
+    <!-- Filters and Sorting -->
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label">Filter by Status</label>
+                    <select class="form-select form-select-sm" id="statusFilter" onchange="filterOrders()">
+                        <option value="">All Orders</option>
+                        <option value="pending">Pending</option>
+                        <option value="processing">Processing</option>
+                        <option value="shipped">Shipped</option>
+                        <option value="completed">Completed</option>
+                        <option value="cancelled">Cancelled</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Filter by Date</label>
+                    <select class="form-select form-select-sm" id="dateFilter" onchange="filterOrders()">
+                        <option value="">All Time</option>
+                        <option value="30">Last 30 Days</option>
+                        <option value="90">Last 90 Days</option>
+                        <option value="365">Last Year</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Search Order #</label>
+                    <input type="text" class="form-control form-control-sm" id="searchInput" placeholder="Order number..." onkeyup="filterOrders()">
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Orders List -->
+    <div id="ordersList">
+        {% for order in orders %}
+        <div class="card border-0 shadow-sm mb-3 order-card" data-status="{{ order.status }}" data-date="{{ order.created_at }}">
+            <div class="card-body">
+                <div class="row align-items-center">
+                    <!-- Order Info -->
+                    <div class="col-md-6">
+                        <div class="mb-2">
+                            <h5 class="mb-1">
+                                <a href="{{ url_for('order_detail', order_id=order.order_id) }}" class="text-decoration-none">
+                                    Order #{{ order.order_number }}
+                                </a>
+                            </h5>
+                            <p class="text-muted small mb-0">{{ order.created_at.strftime('%B %d, %Y') }} at {{ order.created_at.strftime('%H:%M') }}</p>
+                        </div>
+                        <p class="text-muted small mb-0">
+                            📍 {{ order.shipping_suburb }}, {{ order.shipping_city }}
+                        </p>
+                    </div>
+                    
+                    <!-- Status & Amount -->
+                    <div class="col-md-4 text-md-end mb-3 mb-md-0">
+                        <p class="mb-2">
+                            <span class="badge bg-{% if order.status == 'completed' %}success{% elif order.status == 'shipped' %}info{% elif order.status == 'cancelled' %}danger{% else %}warning{% endif %} text-white">
+                                {{ order.status|capitalize }}
+                            </span>
+                        </p>
+                        <p class="h6 mb-0">ZWL {{ "%.2f"|format(order.total_amount) }}</p>
+                    </div>
+                    
+                    <!-- Action -->
+                    <div class="col-md-2 text-md-end">
+                        <a href="{{ url_for('order_detail', order_id=order.order_id) }}" class="btn btn-sm btn-outline-primary">
+                            View Details
+                        </a>
+                    </div>
+                </div>
+                
+                <!-- Order Items Summary -->
+                <hr class="my-3">
+                <div class="row">
+                    {% set items_count = order.items|length if order.items is defined else 1 %}
+                    <div class="col">
+                        <small class="text-muted">{{ items_count }} item{{ 's' if items_count != 1 else '' }}</small>
+                    </div>
+                    <div class="col-auto">
+                        {% if order.payment_status == 'paid' %}
+                        <small class="badge bg-success text-white">✓ Payment Confirmed</small>
+                        {% else %}
+                        <small class="badge bg-warning text-dark">⏳ Awaiting Payment</small>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    
+    <!-- Empty Filter Result -->
+    <div id="noResults" class="card border-0 shadow-sm text-center py-5" style="display: none;">
+        <div class="card-body">
+            <p class="text-muted mb-3">No orders match your filters</p>
+            <button class="btn btn-sm btn-outline-primary" onclick="resetFilters()">Clear Filters</button>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+function filterOrders() {
+    const statusFilter = document.getElementById('statusFilter').value.toLowerCase();
+    const dateFilter = parseInt(document.getElementById('dateFilter').value) || null;
+    const searchInput = document.getElementById('searchInput').value.toLowerCase();
+    
+    const orderCards = document.querySelectorAll('.order-card');
+    let visibleCount = 0;
+    const now = new Date();
+    
+    orderCards.forEach(card => {
+        const orderStatus = card.dataset.status.toLowerCase();
+        const orderDate = new Date(card.dataset.date);
+        const daysDiff = Math.floor((now - orderDate) / (1000 * 60 * 60 * 24));
+        const orderNumber = card.querySelector('h5 a').textContent.toLowerCase();
+        
+        let matchesStatus = !statusFilter || orderStatus === statusFilter;
+        let matchesDate = !dateFilter || daysDiff <= dateFilter;
+        let matchesSearch = !searchInput || orderNumber.includes(searchInput);
+        
+        if (matchesStatus && matchesDate && matchesSearch) {
+            card.style.display = '';
+            visibleCount++;
+        } else {
+            card.style.display = 'none';
+        }
+    });
+    
+    document.getElementById('ordersList').style.display = visibleCount > 0 ? '' : 'none';
+    document.getElementById('noResults').style.display = visibleCount === 0 && orderCards.length > 0 ? '' : 'none';
+}
+
+function resetFilters() {
+    document.getElementById('statusFilter').value = '';
+    document.getElementById('dateFilter').value = '';
+    document.getElementById('searchInput').value = '';
+    filterOrders();
+}
+</script>
+{% endblock %}

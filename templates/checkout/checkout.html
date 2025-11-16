@@ -1,0 +1,285 @@
+{% extends "base.html" %}
+
+{% block title %}Checkout - ZimClassifieds{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row">
+        <!-- Checkout Form -->
+        <div class="col-lg-8">
+            <h1 class="h3 mb-4">Checkout</h1>
+            
+            <form id="checkoutForm" onsubmit="processCheckout(event)">
+                <!-- Shipping Address -->
+                <div class="card border-0 shadow-sm mb-3">
+                    <div class="card-header bg-white border-bottom">
+                        <h5 class="mb-0">Shipping Address</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label for="shipping_address" class="form-label">Street Address *</label>
+                            <input type="text" class="form-control" id="shipping_address" name="shipping_address" 
+                                   value="{{ user.address if user else '' }}" required>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="shipping_city" class="form-label">City *</label>
+                                <input type="text" class="form-control" id="shipping_city" name="shipping_city" 
+                                       value="{{ user.location if user else '' }}" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="shipping_suburb" class="form-label">Suburb/Area *</label>
+                                <input type="text" class="form-control" id="shipping_suburb" name="shipping_suburb" required>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Order Items Review -->
+                <div class="card border-0 shadow-sm mb-3">
+                    <div class="card-header bg-white border-bottom">
+                        <h5 class="mb-0">Order Items</h5>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-sm mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Product</th>
+                                        <th>Seller</th>
+                                        <th>Qty</th>
+                                        <th class="text-end">Price</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for item in cart_items %}
+                                    <tr>
+                                        <td>
+                                            <a href="{{ url_for('product_detail', product_id=item.product_id) }}" class="text-decoration-none">
+                                                {{ item.name }}
+                                            </a>
+                                        </td>
+                                        <td>{{ item.store_name }}</td>
+                                        <td>{{ item.quantity }}</td>
+                                        <td class="text-end">ZWL {{ "%.2f"|format(item.price * item.quantity) }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Payment Method -->
+                <div class="card border-0 shadow-sm mb-3">
+                    <div class="card-header bg-white border-bottom">
+                        <h5 class="mb-0">Payment Method</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="radio" name="payment_method" id="stripe" value="stripe_card" checked onchange="updatePaymentUI()">
+                            <label class="form-check-label" for="stripe">
+                                💳 Credit/Debit Card (Stripe) - Secure
+                            </label>
+                            <small class="d-block text-muted mt-1">Test card: 4242 4242 4242 4242, Exp: 12/25, CVC: 123</small>
+                        </div>
+                        
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="radio" name="payment_method" id="bank_transfer" value="bank_transfer" onchange="updatePaymentUI()">
+                            <label class="form-check-label" for="bank_transfer">
+                                🏦 Bank Transfer
+                            </label>
+                        </div>
+                        
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="payment_method" id="cash_on_delivery" value="cod" onchange="updatePaymentUI()">
+                            <label class="form-check-label" for="cash_on_delivery">
+                                📦 Cash on Delivery
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Stripe Card Element (hidden for non-Stripe payments) -->
+                <div id="stripeSection" class="card border-0 shadow-sm mb-3">
+                    <div class="card-header bg-white border-bottom">
+                        <h5 class="mb-0">Card Details</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="card-element" class="form-control" style="height: 40px; padding-top: 10px;"></div>
+                        <div id="card-errors" class="text-danger mt-2" role="alert"></div>
+                    </div>
+                </div>
+                
+                <button type="submit" id="submitBtn" class="btn btn-primary btn-lg w-100">
+                    Place Order
+                </button>
+            </form>
+        </div>
+        
+        <!-- Order Summary -->
+        <div class="col-lg-4">
+            <div class="card border-0 shadow-sm sticky-top" style="top: 20px;">
+                <div class="card-header bg-white border-bottom">
+                    <h5 class="mb-0">Order Summary</h5>
+                </div>
+                <div class="card-body">
+                    <dl class="row mb-2">
+                        <dt class="col-6">Subtotal:</dt>
+                        <dd class="col-6 text-end">ZWL {{ "%.2f"|format(subtotal) }}</dd>
+                        
+                        <dt class="col-6">Shipping:</dt>
+                        <dd class="col-6 text-end">ZWL {{ "%.2f"|format(shipping) }}</dd>
+                        
+                        <dt class="col-6">Tax (10%):</dt>
+                        <dd class="col-6 text-end">ZWL {{ "%.2f"|format(tax) }}</dd>
+                    </dl>
+                    
+                    <hr class="my-2">
+                    
+                    <div class="d-flex justify-content-between">
+                        <strong>Order Total:</strong>
+                        <strong class="h5 text-primary mb-0">ZWL {{ "%.2f"|format(total) }}</strong>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Stripe.js -->
+<script src="https://js.stripe.com/v3/"></script>
+<script>
+// Initialize Stripe
+const stripe = Stripe('{{ stripe_public_key }}');
+const elements = stripe.elements();
+const cardElement = elements.create('card');
+
+// Mount card element only if Stripe is selected
+document.addEventListener('DOMContentLoaded', function() {
+    cardElement.mount('#card-element');
+    updatePaymentUI();
+});
+
+// Handle card errors
+cardElement.on('change', function(event) {
+    const displayError = document.getElementById('card-errors');
+    if (event.error) {
+        displayError.textContent = event.error.message;
+    } else {
+        displayError.textContent = '';
+    }
+});
+
+function updatePaymentUI() {
+    const stripeSection = document.getElementById('stripeSection');
+    const paymentMethod = document.querySelector('input[name="payment_method"]:checked').value;
+    
+    if (paymentMethod === 'stripe_card') {
+        stripeSection.style.display = '';
+    } else {
+        stripeSection.style.display = 'none';
+    }
+}
+
+function processCheckout(event) {
+    event.preventDefault();
+    
+    const paymentMethod = document.querySelector('input[name="payment_method"]:checked').value;
+    
+    if (paymentMethod === 'stripe_card') {
+        // Process Stripe payment
+        processStripePayment();
+    } else {
+        // Process other payment methods
+        processOtherPayment();
+    }
+}
+
+function processStripePayment() {
+    const submitBtn = document.getElementById('submitBtn');
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Processing...';
+    
+    const formData = {
+        shipping_address: document.getElementById('shipping_address').value,
+        shipping_city: document.getElementById('shipping_city').value,
+        shipping_suburb: document.getElementById('shipping_suburb').value,
+        payment_method: 'stripe_card'
+    };
+    
+    fetch('{{ url_for("create_stripe_checkout") }}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: JSON.stringify(formData)
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            // Redirect to Stripe Checkout
+            stripe.redirectToCheckout({ sessionId: data.sessionId })
+                .then(function(result) {
+                    if (result.error) {
+                        alert('Error: ' + result.error.message);
+                        submitBtn.disabled = false;
+                        submitBtn.textContent = 'Place Order';
+                    }
+                });
+        } else {
+            alert('Error: ' + data.message);
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Place Order';
+        }
+    })
+    .catch(err => {
+        console.error('Error:', err);
+        alert('An error occurred. Please try again.');
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Place Order';
+    });
+}
+
+function processOtherPayment() {
+    const submitBtn = document.getElementById('submitBtn');
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Processing...';
+    
+    const formData = {
+        shipping_address: document.getElementById('shipping_address').value,
+        shipping_city: document.getElementById('shipping_city').value,
+        shipping_suburb: document.getElementById('shipping_suburb').value,
+        payment_method: document.querySelector('input[name="payment_method"]:checked').value
+    };
+    
+    fetch('{{ url_for("create_order") }}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: JSON.stringify(formData)
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            // Redirect to order confirmation
+            window.location.href = '{{ url_for("order_confirmation", order_id="") }}' + data.order_id;
+        } else {
+            alert('Error: ' + data.message);
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Place Order';
+        }
+    })
+    .catch(err => {
+        console.error('Error:', err);
+        alert('An error occurred. Please try again.');
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Place Order';
+    });
+}
+</script>
+{% endblock %}

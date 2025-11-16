@@ -1,0 +1,323 @@
+{% extends "base.html" %}
+
+{% block title %}Search Results - ZimClassifieds{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <!-- Search Header -->
+    <div class="row mb-4">
+        <div class="col-lg-8">
+            <h1 class="h3 mb-2">Search Results</h1>
+            <p class="text-muted">
+                {% if query %}
+                Found {{ total_results }} result{{ 's' if total_results != 1 else '' }} for "<strong>{{ query }}</strong>"
+                {% else %}
+                Browse all products
+                {% endif %}
+            </p>
+        </div>
+        <div class="col-lg-4">
+            <!-- New Search Box -->
+            <form method="GET" action="{{ url_for('search_results') }}" class="d-flex">
+                <input type="text" name="query" class="form-control me-2" placeholder="Search products..." 
+                       value="{{ query or '' }}" required>
+                <button type="submit" class="btn btn-primary">Search</button>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Filters and Sorting Sidebar -->
+    <div class="row">
+        <div class="col-lg-3 mb-4">
+            <div class="card border-0 shadow-sm sticky-top" style="top: 20px;">
+                <div class="card-header bg-white border-bottom">
+                    <h5 class="mb-0">Filters</h5>
+                </div>
+                <div class="card-body">
+                    <!-- Sort By -->
+                    <div class="mb-4">
+                        <label class="form-label fw-bold">Sort By</label>
+                        <select class="form-select form-select-sm" id="sortFilter" onchange="applySortFilter()">
+                            <option value="relevant">Most Relevant</option>
+                            <option value="newest">Newest First</option>
+                            <option value="price_low">Price: Low to High</option>
+                            <option value="price_high">Price: High to Low</option>
+                            <option value="rating">Best Rated</option>
+                            <option value="popular">Most Popular</option>
+                        </select>
+                    </div>
+                    
+                    <!-- Category Filter -->
+                    <div class="mb-4">
+                        <label class="form-label fw-bold">Category</label>
+                        <div id="categoryFilter">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="cat-all" value="" 
+                                       checked onchange="filterSearchResults()">
+                                <label class="form-check-label" for="cat-all">All Categories</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" value="electronics" 
+                                       onchange="filterSearchResults()">
+                                <label class="form-check-label">Electronics</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" value="clothing" 
+                                       onchange="filterSearchResults()">
+                                <label class="form-check-label">Clothing</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" value="home" 
+                                       onchange="filterSearchResults()">
+                                <label class="form-check-label">Home & Garden</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" value="books" 
+                                       onchange="filterSearchResults()">
+                                <label class="form-check-label">Books</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" value="sports" 
+                                       onchange="filterSearchResults()">
+                                <label class="form-check-label">Sports</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" value="toys" 
+                                       onchange="filterSearchResults()">
+                                <label class="form-check-label">Toys & Games</label>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Price Range -->
+                    <div class="mb-4">
+                        <label class="form-label fw-bold">Price Range</label>
+                        <div class="row g-2">
+                            <div class="col-6">
+                                <input type="number" class="form-control form-control-sm" id="priceMin" 
+                                       placeholder="Min" onchange="filterSearchResults()">
+                            </div>
+                            <div class="col-6">
+                                <input type="number" class="form-control form-control-sm" id="priceMax" 
+                                       placeholder="Max" onchange="filterSearchResults()">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Rating Filter -->
+                    <div class="mb-4">
+                        <label class="form-label fw-bold">Rating</label>
+                        <div id="ratingFilter">
+                            {% for rating in [5, 4, 3, 2, 1] %}
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="rating-{{ rating }}" 
+                                       value="{{ rating }}" onchange="filterSearchResults()">
+                                <label class="form-check-label" for="rating-{{ rating }}">
+                                    {% for i in range(rating) %}★{% endfor %}<span class="text-muted">{% for i in range(5 - rating) %}☆{% endfor %}</span> 
+                                    & up
+                                </label>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    
+                    <!-- Stock Status -->
+                    <div class="mb-4">
+                        <label class="form-label fw-bold">Stock Status</label>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="inStock" 
+                                   value="in_stock" checked onchange="filterSearchResults()">
+                            <label class="form-check-label" for="inStock">In Stock Only</label>
+                        </div>
+                    </div>
+                    
+                    <button class="btn btn-sm btn-outline-secondary w-100" onclick="resetSearchFilters()">
+                        Clear All Filters
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Results Grid -->
+        <div class="col-lg-9">
+            {% if products %}
+            <div class="row g-3" id="resultsGrid">
+                {% for product in products %}
+                <div class="col-md-6 col-lg-4 search-result-card" 
+                     data-category="{{ product.category }}" 
+                     data-price="{{ product.price }}" 
+                     data-rating="{{ product.avg_rating or 0 }}"
+                     data-stock="{{ 'in_stock' if product.in_stock else 'out_of_stock' }}">
+                    <div class="card border-0 shadow-sm h-100 product-hover">
+                        <!-- Image Placeholder -->
+                        <div class="position-relative" style="height: 180px; background: #f5f5f5; display: flex; align-items: center; justify-content: center;">
+                            <span class="text-muted">Product Image</span>
+                            {% if product.in_stock %}
+                            <span class="position-absolute top-0 end-0 m-2 badge bg-success">In Stock</span>
+                            {% else %}
+                            <span class="position-absolute top-0 end-0 m-2 badge bg-danger">Out of Stock</span>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- Product Details -->
+                        <div class="card-body flex-grow-1 d-flex flex-column">
+                            <p class="text-muted small mb-1">{{ product.category|capitalize }}</p>
+                            <h6 class="card-title flex-grow-1" style="min-height: 2.5em;">
+                                <a href="{{ url_for('product_detail', product_id=product.product_id) }}" 
+                                   class="text-decoration-none text-dark">
+                                    {{ product.name[:45] }}{% if product.name|length > 45 %}...{% endif %}
+                                </a>
+                            </h6>
+                            
+                            <!-- Seller -->
+                            <p class="small text-muted mb-2">
+                                by <a href="{{ url_for('seller.public_store', store_slug=product.seller_slug) }}" 
+                                      class="text-decoration-none">{{ product.store_name }}</a>
+                            </p>
+                            
+                            <!-- Rating -->
+                            <div class="mb-2">
+                                {% if product.avg_rating %}
+                                <span class="text-warning small">★ {{ "%.1f"|format(product.avg_rating) }}</span>
+                                <span class="text-muted small">({{ product.review_count or 0 }})</span>
+                                {% else %}
+                                <span class="text-muted small">No ratings</span>
+                                {% endif %}
+                            </div>
+                            
+                            <!-- Price -->
+                            <p class="card-text h5 text-primary mb-0">ZWL {{ "%.2f"|format(product.price) }}</p>
+                        </div>
+                        
+                        <!-- Action Button -->
+                        <div class="card-footer bg-white border-top">
+                            {% if product.in_stock %}
+                            <a href="{{ url_for('product_detail', product_id=product.product_id) }}" 
+                               class="btn btn-sm btn-primary w-100">
+                                View Details
+                            </a>
+                            {% else %}
+                            <button class="btn btn-sm btn-secondary w-100" disabled>Out of Stock</button>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            
+            <!-- No Results After Filter -->
+            <div id="noResults" class="card border-0 shadow-sm text-center py-5" style="display: none;">
+                <div class="card-body">
+                    <svg class="mb-3" width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="32" cy="32" r="30" stroke="#dee2e6" stroke-width="2"/>
+                        <path d="M24 24L40 40M40 24L24 40" stroke="#dee2e6" stroke-width="2"/>
+                    </svg>
+                    <p class="text-muted mb-3">No products match your search criteria</p>
+                    <button class="btn btn-sm btn-outline-primary" onclick="resetSearchFilters()">Clear Filters</button>
+                </div>
+            </div>
+            {% else %}
+            <!-- Empty Search State -->
+            <div class="card border-0 shadow-sm text-center py-5">
+                <div class="card-body">
+                    <svg class="mb-3" width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="28" cy="28" r="20" stroke="#dee2e6" stroke-width="2"/>
+                        <path d="M40 40L52 52" stroke="#dee2e6" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                    <h5 class="mb-2">No Products Found</h5>
+                    <p class="text-muted mb-4">Try adjusting your search terms or filters</p>
+                    <a href="{{ url_for('browse_products') }}" class="btn btn-primary">Browse All Products</a>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<style>
+.product-hover {
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.product-hover:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
+}
+</style>
+
+<script>
+function filterSearchResults() {
+    const categoryCheckboxes = document.querySelectorAll('#categoryFilter .form-check-input:checked');
+    const categories = Array.from(categoryCheckboxes).map(cb => cb.value).filter(v => v);
+    
+    const priceMin = parseFloat(document.getElementById('priceMin').value) || 0;
+    const priceMax = parseFloat(document.getElementById('priceMax').value) || Infinity;
+    
+    const ratingCheckboxes = document.querySelectorAll('#ratingFilter .form-check-input:checked');
+    const ratings = Array.from(ratingCheckboxes).map(cb => parseFloat(cb.value));
+    
+    const stockOnly = document.getElementById('inStock').checked;
+    
+    const cards = document.querySelectorAll('.search-result-card');
+    let visibleCount = 0;
+    
+    cards.forEach(card => {
+        const cardCategory = card.dataset.category.toLowerCase();
+        const cardPrice = parseFloat(card.dataset.price);
+        const cardRating = parseFloat(card.dataset.rating);
+        const cardStock = card.dataset.stock;
+        
+        let matchesCategory = categories.length === 0 || categories.includes(cardCategory);
+        let matchesPrice = cardPrice >= priceMin && cardPrice <= priceMax;
+        let matchesRating = ratings.length === 0 || ratings.some(r => cardRating >= r);
+        let matchesStock = !stockOnly || cardStock === 'in_stock';
+        
+        if (matchesCategory && matchesPrice && matchesRating && matchesStock) {
+            card.style.display = '';
+            visibleCount++;
+        } else {
+            card.style.display = 'none';
+        }
+    });
+    
+    document.getElementById('resultsGrid').style.display = visibleCount > 0 ? '' : 'none';
+    document.getElementById('noResults').style.display = visibleCount === 0 && cards.length > 0 ? '' : 'none';
+}
+
+function applySortFilter() {
+    const sortBy = document.getElementById('sortFilter').value;
+    const grid = document.getElementById('resultsGrid');
+    
+    if (!grid) return;
+    
+    const cards = Array.from(grid.querySelectorAll('.search-result-card:not([style*="display: none"])'));
+    
+    cards.sort((a, b) => {
+        switch(sortBy) {
+            case 'price_low':
+                return parseFloat(a.dataset.price) - parseFloat(b.dataset.price);
+            case 'price_high':
+                return parseFloat(b.dataset.price) - parseFloat(a.dataset.price);
+            case 'rating':
+                return parseFloat(b.dataset.rating) - parseFloat(a.dataset.rating);
+            case 'newest':
+                return 0; // Would need created_at data for this
+            default:
+                return 0;
+        }
+    });
+    
+    cards.forEach(card => grid.appendChild(card));
+}
+
+function resetSearchFilters() {
+    document.querySelectorAll('#categoryFilter .form-check-input').forEach(cb => cb.checked = cb.id === 'cat-all');
+    document.querySelectorAll('#ratingFilter .form-check-input').forEach(cb => cb.checked = false);
+    document.getElementById('priceMin').value = '';
+    document.getElementById('priceMax').value = '';
+    document.getElementById('inStock').checked = true;
+    document.getElementById('sortFilter').value = 'relevant';
+    filterSearchResults();
+}
+</script>
+{% endblock %}
