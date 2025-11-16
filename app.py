@@ -16,6 +16,7 @@ import smtplib
 import json
 import urllib.request
 import urllib.parse
+import time
 from email.message import EmailMessage
 from itsdangerous import URLSafeTimedSerializer, SignatureExpired, BadSignature
 
@@ -360,6 +361,207 @@ def init_db():
         CREATE INDEX IF NOT EXISTS idx_properties_landlord ON properties(landlord_id);
         CREATE INDEX IF NOT EXISTS idx_rooms_landlord ON rooms(landlord_id);
         CREATE INDEX IF NOT EXISTS idx_applications_property ON applications(property_id);
+
+        -- Phase 1: E-Commerce Marketplace Tables
+        CREATE TABLE IF NOT EXISTS sellers (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            seller_id TEXT UNIQUE NOT NULL,
+            user_id TEXT NOT NULL,
+            store_name TEXT NOT NULL,
+            store_slug TEXT UNIQUE NOT NULL,
+            description TEXT,
+            logo_image TEXT,
+            banner_image TEXT,
+            is_verified INTEGER DEFAULT 0,
+            rating REAL DEFAULT 5.0,
+            total_reviews INTEGER DEFAULT 0,
+            total_sales INTEGER DEFAULT 0,
+            return_policy TEXT,
+            shipping_policy TEXT,
+            response_time_hours INTEGER DEFAULT 24,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_id) REFERENCES users(user_id)
+        );
+
+        CREATE TABLE IF NOT EXISTS products (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            product_id TEXT UNIQUE NOT NULL,
+            seller_id INTEGER NOT NULL,
+            category TEXT NOT NULL,
+            subcategory TEXT,
+            name TEXT NOT NULL,
+            description TEXT,
+            price REAL NOT NULL,
+            currency TEXT DEFAULT 'ZWL',
+            sku TEXT UNIQUE,
+            stock_quantity INTEGER DEFAULT 0,
+            images TEXT,
+            status TEXT DEFAULT 'active',
+            rating REAL DEFAULT 0,
+            review_count INTEGER DEFAULT 0,
+            views INTEGER DEFAULT 0,
+            flags INTEGER DEFAULT 0,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            bumped_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            expires_at TIMESTAMP,
+            FOREIGN KEY (seller_id) REFERENCES sellers(id)
+        );
+
+        CREATE TABLE IF NOT EXISTS inventory (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            inventory_id TEXT UNIQUE NOT NULL,
+            product_id INTEGER NOT NULL,
+            warehouse_location TEXT DEFAULT 'main',
+            quantity_available INTEGER DEFAULT 0,
+            quantity_reserved INTEGER DEFAULT 0,
+            quantity_damaged INTEGER DEFAULT 0,
+            last_restock TIMESTAMP,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (product_id) REFERENCES products(id)
+        );
+
+        CREATE TABLE IF NOT EXISTS cart (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            cart_id TEXT UNIQUE NOT NULL,
+            user_id TEXT NOT NULL,
+            product_id INTEGER NOT NULL,
+            seller_id INTEGER NOT NULL,
+            quantity INTEGER DEFAULT 1,
+            price_at_add REAL,
+            added_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE(user_id, product_id),
+            FOREIGN KEY (user_id) REFERENCES users(user_id),
+            FOREIGN KEY (product_id) REFERENCES products(id),
+            FOREIGN KEY (seller_id) REFERENCES sellers(id)
+        );
+
+        CREATE TABLE IF NOT EXISTS orders (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            order_id TEXT UNIQUE NOT NULL,
+            user_id TEXT NOT NULL,
+            order_number TEXT UNIQUE NOT NULL,
+            total_amount REAL NOT NULL,
+            currency TEXT DEFAULT 'ZWL',
+            status TEXT DEFAULT 'pending',
+            payment_method TEXT,
+            payment_status TEXT DEFAULT 'pending',
+            shipping_address TEXT,
+            shipping_city TEXT,
+            shipping_suburb TEXT,
+            shipping_cost REAL DEFAULT 0,
+            discount_applied REAL DEFAULT 0,
+            notes TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_id) REFERENCES users(user_id)
+        );
+
+        CREATE TABLE IF NOT EXISTS order_items (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            order_item_id TEXT UNIQUE NOT NULL,
+            order_id INTEGER NOT NULL,
+            product_id INTEGER NOT NULL,
+            seller_id INTEGER NOT NULL,
+            quantity INTEGER NOT NULL,
+            unit_price REAL NOT NULL,
+            subtotal REAL NOT NULL,
+            fulfillment_status TEXT DEFAULT 'pending',
+            tracking_number TEXT,
+            shipped_at TIMESTAMP,
+            delivered_at TIMESTAMP,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (order_id) REFERENCES orders(id),
+            FOREIGN KEY (product_id) REFERENCES products(id),
+            FOREIGN KEY (seller_id) REFERENCES sellers(id)
+        );
+
+        CREATE TABLE IF NOT EXISTS product_reviews (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            review_id TEXT UNIQUE NOT NULL,
+            product_id INTEGER NOT NULL,
+            user_id TEXT NOT NULL,
+            order_id INTEGER,
+            rating INTEGER CHECK(rating >= 1 AND rating <= 5),
+            title TEXT,
+            comment TEXT,
+            verified_purchase INTEGER DEFAULT 0,
+            helpful_count INTEGER DEFAULT 0,
+            status TEXT DEFAULT 'active',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (product_id) REFERENCES products(id),
+            FOREIGN KEY (user_id) REFERENCES users(user_id),
+            FOREIGN KEY (order_id) REFERENCES orders(id)
+        );
+
+        CREATE TABLE IF NOT EXISTS seller_ratings (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            rating_id TEXT UNIQUE NOT NULL,
+            seller_id INTEGER NOT NULL,
+            user_id TEXT NOT NULL,
+            order_id INTEGER,
+            rating INTEGER CHECK(rating >= 1 AND rating <= 5),
+            comment TEXT,
+            response_time_rating INTEGER,
+            product_quality_rating INTEGER,
+            shipping_rating INTEGER,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (seller_id) REFERENCES sellers(id),
+            FOREIGN KEY (user_id) REFERENCES users(user_id),
+            FOREIGN KEY (order_id) REFERENCES orders(id)
+        );
+
+        CREATE TABLE IF NOT EXISTS payment_transactions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            transaction_id TEXT UNIQUE NOT NULL,
+            order_id INTEGER NOT NULL,
+            user_id TEXT NOT NULL,
+            amount REAL NOT NULL,
+            currency TEXT DEFAULT 'ZWL',
+            payment_method TEXT,
+            provider TEXT,
+            provider_reference TEXT,
+            status TEXT DEFAULT 'pending',
+            error_message TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (order_id) REFERENCES orders(id),
+            FOREIGN KEY (user_id) REFERENCES users(user_id)
+        );
+
+        CREATE TABLE IF NOT EXISTS seller_commissions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            commission_id TEXT UNIQUE NOT NULL,
+            seller_id INTEGER NOT NULL,
+            order_id INTEGER,
+            gross_amount REAL NOT NULL,
+            commission_rate REAL DEFAULT 0.15,
+            commission_amount REAL NOT NULL,
+            net_amount REAL NOT NULL,
+            status TEXT DEFAULT 'pending',
+            paid_at TIMESTAMP,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (seller_id) REFERENCES sellers(id),
+            FOREIGN KEY (order_id) REFERENCES orders(id)
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_products_seller ON products(seller_id);
+        CREATE INDEX IF NOT EXISTS idx_products_category ON products(category);
+        CREATE INDEX IF NOT EXISTS idx_products_status ON products(status);
+        CREATE INDEX IF NOT EXISTS idx_inventory_product ON inventory(product_id);
+        CREATE INDEX IF NOT EXISTS idx_cart_user ON cart(user_id);
+        CREATE INDEX IF NOT EXISTS idx_orders_user ON orders(user_id);
+        CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(status);
+        CREATE INDEX IF NOT EXISTS idx_order_items_order ON order_items(order_id);
+        CREATE INDEX IF NOT EXISTS idx_order_items_seller ON order_items(seller_id);
+        CREATE INDEX IF NOT EXISTS idx_product_reviews_product ON product_reviews(product_id);
+        CREATE INDEX IF NOT EXISTS idx_product_reviews_user ON product_reviews(user_id);
+        CREATE INDEX IF NOT EXISTS idx_seller_ratings_seller ON seller_ratings(seller_id);
+        CREATE INDEX IF NOT EXISTS idx_payment_transactions_order ON payment_transactions(order_id);
+        CREATE INDEX IF NOT EXISTS idx_seller_commissions_seller ON seller_commissions(seller_id);
     ''')
     
     db.commit()
@@ -1197,13 +1399,346 @@ def admin_logout():
     return redirect(url_for('admin_login'))
 
 
-# Register rentals blueprint (merged landlord-tenant functionality)
+# ============= PHASE 1: E-COMMERCE ROUTES =============
+
+@app.route('/products')
+def browse_products():
+    """Browse all products (marketplace)."""
+    db = get_db()
+    
+    category = request.args.get('category', '')
+    search_q = request.args.get('q', '')
+    price_min = request.args.get('price_min', type=float)
+    price_max = request.args.get('price_max', type=float)
+    sort = request.args.get('sort', 'newest')
+    
+    sql = 'SELECT p.*, s.store_name FROM products p JOIN sellers s ON p.seller_id = s.id WHERE p.status = "active"'
+    params = []
+    
+    if search_q:
+        sql += ' AND (p.name LIKE ? OR p.description LIKE ?)'
+        params.extend([f'%{search_q}%', f'%{search_q}%'])
+    
+    if category:
+        sql += ' AND p.category = ?'
+        params.append(category)
+    
+    if price_min:
+        sql += ' AND p.price >= ?'
+        params.append(price_min)
+    
+    if price_max:
+        sql += ' AND p.price <= ?'
+        params.append(price_max)
+    
+    # Sorting
+    if sort == 'price_low':
+        sql += ' ORDER BY p.price ASC'
+    elif sort == 'price_high':
+        sql += ' ORDER BY p.price DESC'
+    elif sort == 'rating':
+        sql += ' ORDER BY p.rating DESC'
+    else:  # newest
+        sql += ' ORDER BY p.bumped_at DESC'
+    
+    products = db.execute(sql, params).fetchall()
+    db.close()
+    
+    return render_template('products/browse.html',
+                         products=products,
+                         search_q=search_q,
+                         category=category,
+                         sort=sort)
+
+
+@app.route('/product/<product_id>')
+def product_detail(product_id):
+    """Product detail page."""
+    db = get_db()
+    
+    product = db.execute('''
+        SELECT p.*, s.store_name, s.seller_id as seller_slug, s.id as seller_id
+        FROM products p
+        JOIN sellers s ON p.seller_id = s.id
+        WHERE p.product_id = ?
+    ''', (product_id,)).fetchone()
+    
+    if not product:
+        db.close()
+        return render_template('error.html', message='Product not found'), 404
+    
+    # Increment views
+    db.execute('UPDATE products SET views = views + 1 WHERE product_id = ?', (product_id,))
+    
+    # Get reviews
+    reviews = db.execute('''
+        SELECT pr.*, u.full_name as reviewer_name
+        FROM product_reviews pr
+        JOIN users u ON pr.user_id = u.user_id
+        WHERE pr.product_id = ? AND pr.status = 'active'
+        ORDER BY pr.created_at DESC
+    ''', (product['id'],)).fetchall()
+    
+    # Get seller rating
+    seller_rating = db.execute('''
+        SELECT AVG(rating) as avg_rating FROM seller_ratings WHERE seller_id = ?
+    ''', (product['seller_id'],)).fetchone()
+    
+    db.commit()
+    db.close()
+    
+    return render_template('products/detail.html',
+                         product=product,
+                         reviews=reviews,
+                         seller_rating=seller_rating['avg_rating'] if seller_rating else 5.0)
+
+
+@app.route('/checkout')
+@login_required
+def checkout():
+    """Checkout page."""
+    db = get_db()
+    user_id = session['user_id']
+    
+    # Get user info
+    user = db.execute('SELECT * FROM users WHERE user_id = ?', (user_id,)).fetchone()
+    
+    # Get cart items
+    cart_items = db.execute('''
+        SELECT c.*, p.name, p.price, s.store_name
+        FROM cart c
+        JOIN products p ON c.product_id = p.id
+        JOIN sellers s ON c.seller_id = s.id
+        WHERE c.user_id = ?
+    ''', (user_id,)).fetchall()
+    
+    if not cart_items:
+        db.close()
+        return redirect(url_for('cart.view_cart'))
+    
+    # Calculate totals
+    subtotal = sum(item['price'] * item['quantity'] for item in cart_items)
+    shipping = 0
+    tax = subtotal * 0.10
+    total = subtotal + shipping + tax
+    
+    db.close()
+    
+    return render_template('checkout/checkout.html',
+                         user=user,
+                         cart_items=cart_items,
+                         subtotal=subtotal,
+                         shipping=shipping,
+                         tax=tax,
+                         total=total)
+
+
+@app.route('/api/orders', methods=['POST'])
+@login_required
+def create_order():
+    """Create order from cart."""
+    data = request.get_json()
+    user_id = session['user_id']
+    
+    shipping_address = data.get('shipping_address')
+    shipping_city = data.get('shipping_city')
+    shipping_suburb = data.get('shipping_suburb')
+    payment_method = data.get('payment_method')
+    
+    if not all([shipping_address, shipping_city, shipping_suburb, payment_method]):
+        return jsonify({'success': False, 'message': 'Missing required fields'}), 400
+    
+    db = get_db()
+    
+    # Get cart items
+    cart_items = db.execute('''
+        SELECT c.*, p.price FROM cart c
+        JOIN products p ON c.product_id = p.id
+        WHERE c.user_id = ?
+    ''', (user_id,)).fetchall()
+    
+    if not cart_items:
+        db.close()
+        return jsonify({'success': False, 'message': 'Cart is empty'}), 400
+    
+    # Calculate totals
+    subtotal = sum(item['price'] * item['quantity'] for item in cart_items)
+    shipping = 0
+    tax = subtotal * 0.10
+    total = subtotal + shipping + tax
+    
+    # Create order
+    order_id = str(uuid.uuid4())
+    order_number = f"ORD-{int(time.time())}"
+    
+    db.execute('''
+        INSERT INTO orders
+        (order_id, user_id, order_number, total_amount, shipping_address, shipping_city,
+         shipping_suburb, shipping_cost, payment_method, payment_status)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ''', (order_id, user_id, order_number, total, shipping_address, shipping_city,
+          shipping_suburb, shipping, payment_method, 'pending'))
+    
+    # Get order internal ID
+    order_data = db.execute('SELECT id FROM orders WHERE order_id = ?', (order_id,)).fetchone()
+    order_internal_id = order_data['id']
+    
+    # Create order items
+    for item in cart_items:
+        order_item_id = str(uuid.uuid4())
+        item_subtotal = item['price'] * item['quantity']
+        
+        db.execute('''
+            INSERT INTO order_items
+            (order_item_id, order_id, product_id, seller_id, quantity, unit_price, subtotal)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        ''', (order_item_id, order_internal_id, item['product_id'], item['seller_id'],
+              item['quantity'], item['price'], item_subtotal))
+        
+        # Update product stock
+        db.execute('''
+            UPDATE products SET stock_quantity = stock_quantity - ? WHERE id = ?
+        ''', (item['quantity'], item['product_id']))
+    
+    # Clear cart
+    db.execute('DELETE FROM cart WHERE user_id = ?', (user_id,))
+    
+    # Create payment transaction
+    transaction_id = str(uuid.uuid4())
+    db.execute('''
+        INSERT INTO payment_transactions (transaction_id, order_id, user_id, amount, payment_method, status)
+        VALUES (?, ?, ?, ?, ?, ?)
+    ''', (transaction_id, order_internal_id, user_id, total, payment_method, 'pending'))
+    
+    db.commit()
+    db.close()
+    
+    return jsonify({'success': True, 'order_id': order_id, 'order_number': order_number})
+
+
+@app.route('/order/<order_id>')
+@login_required
+def view_order(order_id):
+    """View order details."""
+    db = get_db()
+    user_id = session['user_id']
+    
+    order = db.execute('''
+        SELECT * FROM orders WHERE order_id = ? AND user_id = ?
+    ''', (order_id, user_id)).fetchone()
+    
+    if not order:
+        db.close()
+        return render_template('error.html', message='Order not found'), 404
+    
+    # Get order items
+    order_items = db.execute('''
+        SELECT oi.*, p.name, s.store_name
+        FROM order_items oi
+        JOIN products p ON oi.product_id = p.id
+        JOIN sellers s ON oi.seller_id = s.id
+        WHERE oi.order_id = ?
+    ''', (order['id'],)).fetchall()
+    
+    db.close()
+    
+    return render_template('checkout/order_detail.html',
+                         order=order,
+                         order_items=order_items)
+
+
+@app.route('/orders/history')
+@login_required
+def order_history():
+    """View order history."""
+    db = get_db()
+    user_id = session['user_id']
+    
+    orders = db.execute('''
+        SELECT * FROM orders WHERE user_id = ? ORDER BY created_at DESC
+    ''', (user_id,)).fetchall()
+    
+    db.close()
+    
+    return render_template('checkout/order_history.html', orders=orders)
+
+
+@app.route('/api/product-review', methods=['POST'])
+@login_required
+def submit_product_review():
+    """Submit product review."""
+    data = request.get_json()
+    product_id = data.get('product_id')
+    rating = int(data.get('rating', 0))
+    title = data.get('title', '')
+    comment = data.get('comment', '')
+    
+    if not (1 <= rating <= 5):
+        return jsonify({'success': False, 'message': 'Invalid rating'}), 400
+    
+    db = get_db()
+    user_id = session['user_id']
+    
+    # Get product
+    product = db.execute('SELECT * FROM products WHERE product_id = ?', (product_id,)).fetchone()
+    
+    if not product:
+        db.close()
+        return jsonify({'success': False, 'message': 'Product not found'}), 404
+    
+    # Check if user already reviewed
+    existing = db.execute('''
+        SELECT id FROM product_reviews WHERE product_id = ? AND user_id = ?
+    ''', (product['id'], user_id)).fetchone()
+    
+    if existing:
+        db.close()
+        return jsonify({'success': False, 'message': 'You already reviewed this product'}), 400
+    
+    # Create review
+    review_id = str(uuid.uuid4())
+    db.execute('''
+        INSERT INTO product_reviews (review_id, product_id, user_id, rating, title, comment, verified_purchase)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+    ''', (review_id, product['id'], user_id, rating, title, comment, 1))
+    
+    # Update product rating
+    avg_rating = db.execute('''
+        SELECT AVG(rating) as avg FROM product_reviews WHERE product_id = ? AND status = 'active'
+    ''', (product['id'],)).fetchone()['avg']
+    
+    review_count = db.execute('''
+        SELECT COUNT(*) as count FROM product_reviews WHERE product_id = ? AND status = 'active'
+    ''', (product['id'],)).fetchone()['count']
+    
+    db.execute('''
+        UPDATE products SET rating = ?, review_count = ? WHERE id = ?
+    ''', (avg_rating, review_count, product['id']))
+    
+    db.commit()
+    db.close()
+    
+    return jsonify({'success': True, 'message': 'Review submitted'})
+
+
+# Register blueprints
 try:
     from rentals import rentals_bp
     app.register_blueprint(rentals_bp)
 except Exception as e:
-    # If blueprint import fails during initial edits, log and continue; application will still run.
     print('Could not register rentals blueprint:', e)
+
+try:
+    from sellers import sellers_bp
+    app.register_blueprint(sellers_bp)
+except Exception as e:
+    print('Could not register sellers blueprint:', e)
+
+try:
+    from cart import cart_bp
+    app.register_blueprint(cart_bp)
+except Exception as e:
+    print('Could not register cart blueprint:', e)
 
 if __name__ == '__main__':
     init_db()
