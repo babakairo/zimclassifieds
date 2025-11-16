@@ -1,8 +1,8 @@
-# ZimClassifieds Ecommerce Platform
+# ZimClassifieds Marketplace
 
-A modern, multi-seller ecommerce marketplace platform built with Flask, designed for Zimbabwe. Features include seller management, product catalog, shopping cart, Stripe payment processing, and courier logistics integration.
+A modern, multi-seller ecommerce marketplace platform built with Flask, designed for Zimbabwe. Features include seller management, product catalog, shopping cart, **Buy Now Pay Later (BNPL)**, Paynow mobile money integration, Stripe payment processing, and courier logistics.
 
-## ✨ Features
+## ✨ Key Features
 
 ### Customer Features
 - **Browse Products**: Search, filter, and discover products across categories
@@ -21,9 +21,12 @@ A modern, multi-seller ecommerce marketplace platform built with Flask, designed
 - **Commission Tracking**: View platform commission calculations
 
 ### Payment Integration
-- **Stripe Payments**: Secure card payments with test mode
-- **Multiple Payment Methods**: Bank transfer, card payment, COD (coming soon)
-- **Payment Verification**: Automatic order confirmation on successful payment
+- **Buy Now Pay Later (BNPL)**: Weekly installment payments with 3% diaspora rate
+- **Paynow Mobile Money**: EcoCash, OneMoney, Telecash integration
+- **Stripe Payments**: Secure international card payments
+- **Multiple Payment Methods**: Bank transfer, cash on delivery
+- **Automated Payments**: Webhook verification and status tracking
+- **Diaspora Special**: Auto-detect diaspora customers for preferential rates
 
 ### Logistics (Phase 2 Ready)
 - **Courier Network**: Individual courier operators register and operate by city
@@ -82,47 +85,68 @@ A modern, multi-seller ecommerce marketplace platform built with Flask, designed
 
 ```
 classifieds/
-├── app.py                    # Main Flask application (900+ lines, ecommerce-focused)
+├── app.py                    # Main Flask application with core routes
+├── bnpl.py                  # Buy Now Pay Later module (1000+ lines)
 ├── sellers.py               # Seller blueprint (store, products, orders, analytics)
 ├── cart.py                  # Shopping cart blueprint (AJAX operations)
+├── transporters.py          # Courier/logistics management
+├── database.py              # Database abstraction (SQLite/PostgreSQL)
+├── config.json              # Application configuration
 ├── requirements.txt         # Python dependencies
-├── zimclassifieds.db       # SQLite database
-├── static/                  # Static files
+├── runtime.txt              # Python version for deployment
+├── Procfile                 # Heroku deployment config
+├── .gitignore               # Git ignore rules
+├── README.md                # This file
+│
+├── static/                  # Static assets
 │   ├── css/                 # Stylesheets
 │   ├── js/                  # JavaScript
 │   └── uploads/             # User-uploaded images
+│       ├── products/        # Product images
+│       ├── ids/             # ID verification documents
+│       └── police_clearance/ # Driver police clearance
+│
 ├── templates/               # HTML templates (Jinja2)
 │   ├── base.html           # Base template with navigation
-│   ├── index.html          # Home page
+│   ├── index.html          # Home page with BNPL banner
+│   ├── about.html          # About page
 │   ├── login.html          # User login
 │   ├── register.html       # User registration
 │   ├── dashboard.html      # Customer dashboard
 │   ├── error.html          # Error pages
-│   ├── products/           # Product browsing templates
-│   │   ├── browse.html
-│   │   ├── detail.html
-│   │   └── search_results.html
-│   ├── sellers/            # Seller management templates
-│   │   ├── register.html
-│   │   ├── dashboard.html
-│   │   ├── products.html
-│   │   ├── product_form.html
-│   │   ├── orders.html
-│   │   ├── analytics.html
-│   │   └── store.html
-│   ├── cart/               # Shopping cart templates
-│   │   └── cart.html
-│   └── checkout/           # Checkout flow templates
-│       ├── checkout.html
-│       ├── order_confirmation.html
-│       ├── order_detail.html
-│       └── order_history.html
-├── PHASE1_COMPLETE.md       # Phase 1 implementation guide
-├── PHASE2_LOGISTICS_DESIGN.md # Phase 2 system architecture
-├── PHASE2_IMPLEMENTATION.md   # Phase 2 implementation roadmap
-├── STRIPE_SETUP.md          # Stripe integration guide
-├── QUICK_START.md           # Quick start guide
-└── DEPLOYMENT.md            # Deployment instructions
+│   ├── products/           # Product browsing
+│   ├── sellers/            # Seller management
+│   ├── cart/               # Shopping cart
+│   ├── checkout/           # Checkout with BNPL option
+│   ├── bnpl/               # BNPL specific templates
+│   │   ├── diaspora_landing.html
+│   │   ├── first_payment.html
+│   │   └── payment_return.html
+│   └── transporters/       # Courier/driver portal
+│
+├── scripts/                 # Utility scripts
+│   ├── seed_marketplace.py  # Generate test data
+│   ├── migrate_to_postgres.py # PostgreSQL migration
+│   ├── check_db.py          # Database viewer
+│   └── test_functionality.py # Integration tests
+│
+└── docs/                    # Documentation
+    ├── bnpl/                # BNPL documentation
+    │   ├── BNPL_IMPLEMENTATION.md
+    │   ├── BNPL_CASH_COLLECTION_GUIDE.md
+    │   ├── BNPL_CHECKOUT_INTEGRATION.md
+    │   ├── BNPL_NAVIGATION_UPDATE.md
+    │   └── BNPL_QUICK_START.md
+    ├── deployment/          # Deployment guides
+    │   ├── DEPLOYMENT.md
+    │   ├── POSTGRES_MIGRATION_GUIDE.md
+    │   ├── PRODUCTION_DATABASE_SETUP.md
+    │   └── MIGRATION_COMPLETE.md
+    ├── guides/              # User guides
+    │   ├── QUICK_START.md
+    │   ├── STRIPE_SETUP.md
+    │   └── COMPETITIVE_STRATEGY.md
+    └── *.md                 # Project status documents
 ```
 
 ## 🗄️ Database Schema

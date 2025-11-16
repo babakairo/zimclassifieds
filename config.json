@@ -1,21 +1,159 @@
 {
+  "app": {
+    "name": "ZimClassifieds",
+    "secret_key": "your-secret-key-change-in-production-use-secrets-token-hex-32",
+    "debug": true,
+    "host": "0.0.0.0",
+    "port": 5001,
+    "base_url": "http://localhost:5001",
+    "timezone": "Africa/Harare"
+  },
+  
+  "database": {
+    "type": "sqlite",
+    "sqlite_path": "zimclassifieds.db",
+    "postgres": {
+      "host": "localhost",
+      "port": 5432,
+      "database": "zimclassifieds",
+      "user": "postgres",
+      "password": "YOUR_POSTGRES_PASSWORD"
+    }
+  },
+  
   "stripe": {
     "public_key": "pk_test_YOUR_STRIPE_PUBLIC_KEY",
-    "secret_key": "sk_test_YOUR_STRIPE_SECRET_KEY"
+    "secret_key": "sk_test_YOUR_STRIPE_SECRET_KEY",
+    "webhook_secret": "whsec_YOUR_WEBHOOK_SECRET",
+    "currency": "usd"
   },
+  
   "paynow": {
     "integration_id": "YOUR_PAYNOW_INTEGRATION_ID",
     "integration_key": "YOUR_PAYNOW_INTEGRATION_KEY",
     "return_url": "http://localhost:5001/bnpl/payment-return",
-    "result_url": "http://localhost:5001/bnpl/payment-webhook"
+    "result_url": "http://localhost:5001/bnpl/payment-webhook",
+    "sandbox": true,
+    "comment": "Register at https://www.paynow.co.zw - Takes 24-48 hours for approval"
   },
+  
   "africastalking": {
     "username": "sandbox",
     "api_key": "YOUR_AFRICAS_TALKING_API_KEY",
-    "sender_id": "ZimClass"
+    "sender_id": "ZimClass",
+    "environment": "sandbox",
+    "comment": "Register at https://africastalking.com - Instant approval. Use 'sandbox' username for testing"
   },
-  "app": {
-    "secret_key": "your-secret-key-change-in-production",
-    "debug": true
+  
+  "bnpl": {
+    "enabled": true,
+    "diaspora_fee_percent": 3,
+    "standard_fee_percent": 5,
+    "late_fee_zwl": 10,
+    "minimum_order_zwl": 20,
+    "credit_tiers": {
+      "basic": {
+        "limit_zwl": 100,
+        "installments": 4,
+        "requirements": "Phone verification only"
+      },
+      "verified": {
+        "limit_zwl": 500,
+        "installments": 6,
+        "requirements": "Phone + ID verification + 2+ completed agreements"
+      },
+      "premium": {
+        "limit_zwl": 2000,
+        "installments": 8,
+        "requirements": "Phone + ID + 5+ completed agreements + employer verification"
+      }
+    },
+    "payment_schedule": "weekly",
+    "reminder_days_before": 2,
+    "grace_period_days": 3
+  },
+  
+  "email": {
+    "smtp_host": "smtp.gmail.com",
+    "smtp_port": 587,
+    "username": "your-email@gmail.com",
+    "password": "YOUR_APP_PASSWORD",
+    "sender_name": "ZimClassifieds",
+    "sender_email": "noreply@zimclassifieds.com",
+    "use_tls": true
+  },
+  
+  "uploads": {
+    "max_file_size_mb": 5,
+    "allowed_extensions": ["jpg", "jpeg", "png", "gif", "webp"],
+    "product_images_path": "static/uploads/products",
+    "id_documents_path": "static/uploads/ids",
+    "police_clearance_path": "static/uploads/police_clearance"
+  },
+  
+  "transporters": {
+    "commission_percent": 15,
+    "police_clearance_required": true,
+    "minimum_rating": 3.5,
+    "delivery_radius_km": 50
+  },
+  
+  "sellers": {
+    "commission_percent": 10,
+    "verification_required": true,
+    "minimum_rating": 3.0
+  },
+  
+  "security": {
+    "session_lifetime_minutes": 60,
+    "max_login_attempts": 5,
+    "lockout_duration_minutes": 30,
+    "password_min_length": 8,
+    "require_email_verification": false,
+    "rate_limit_per_minute": 60
+  },
+  
+  "features": {
+    "bnpl_enabled": true,
+    "stripe_enabled": true,
+    "bank_transfer_enabled": true,
+    "cash_on_delivery_enabled": true,
+    "transporters_enabled": true,
+    "reviews_enabled": true,
+    "wishlist_enabled": true
+  },
+  
+  "diaspora": {
+    "phone_prefixes": ["+44", "+1", "+27", "+61", "+971", "+353", "+64"],
+    "location_keywords": ["uk", "usa", "united states", "south africa", "canada", "australia", "uae", "dubai", "ireland", "new zealand", "england", "london", "america"],
+    "special_bnpl_rate": 3,
+    "auto_detect": true
+  },
+  
+  "notifications": {
+    "sms_enabled": true,
+    "email_enabled": true,
+    "order_confirmation": true,
+    "payment_reminder": true,
+    "payment_confirmation": true,
+    "delivery_updates": true,
+    "bnpl_agreement_created": true
+  },
+  
+  "admin": {
+    "emails": ["admin@zimclassifieds.com"],
+    "dashboard_enabled": true,
+    "bnpl_approval_required": false,
+    "transporter_approval_required": true,
+    "seller_approval_required": false
+  },
+  
+  "production": {
+    "comment": "Update these URLs when deploying to production",
+    "base_url": "https://zimclassifieds.com",
+    "paynow_return_url": "https://zimclassifieds.com/bnpl/payment-return",
+    "paynow_result_url": "https://zimclassifieds.com/bnpl/payment-webhook",
+    "stripe_webhook_url": "https://zimclassifieds.com/stripe/webhook",
+    "debug": false
   }
 }
